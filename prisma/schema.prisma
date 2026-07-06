@@ -1,0 +1,420 @@
+// Prisma schema for CIMS Campus LMS — see plan doc for design rationale.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- ENUMS ----------
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  LECTURER
+  FINANCE
+  REGISTRAR
+  STUDENT
+}
+
+enum ContentType {
+  FILE
+  LINK
+  VIDEO
+  ZOOM
+  RICH_TEXT
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AnnouncementScope {
+  INSTITUTION
+  MODULE
+}
+
+enum RegistrationStatus {
+  PAYMENT_PENDING
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum SemesterStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+}
+
+enum CalendarEventType {
+  SEMESTER_START
+  SEMESTER_END
+  EXAM_PERIOD
+  HOLIDAY
+  DEADLINE
+  OTHER
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+  COMPLETED
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  STUBBED
+}
+
+// ---------- CORE ----------
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         Role
+  isActive     Boolean @default(true)
+
+  // Only meaningful for STUDENT role: home program for catalog default / dashboard.
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lecturerAssignments   LecturerModuleAssignment[] @relation("LecturerAssignments")
+  assignmentsGranted    LecturerModuleAssignment[] @relation("AssignedBy")
+  registrations         SemesterRegistration[]     @relation("StudentRegistrations")
+  decisionsGiven        SemesterRegistration[]      @relation("DecidedBy")
+  enrollments           Enrollment[]
+  announcementsAuthored Announcement[]
+  paymentsVerified      PaymentRecord[]             @relation("PaymentVerifiedBy")
+  passwordResetTokens   PasswordResetToken[]
+  calendarEventsCreated CalendarEvent[]
+  contentItemsCreated   ContentItem[]
+  submissions           Submission[]
+
+  @@index([role])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ---------- ACADEMIC STRUCTURE ----------
+
+model Program {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  description   String?
+  durationYears Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  modules  Module[]
+  students User[]
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "2025/2026"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false) // only one should be active; enforced in academic-year.actions.ts
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  semesters Semester[]
+  modules   Module[]
+}
+
+model Semester {
+  id                   String         @id @default(cuid())
+  academicYearId       String
+  academicYear         AcademicYear   @relation(fields: [academicYearId], references: [id])
+  name                 String // "Semester 1"
+  semesterNumber       Int // 1, 2 (or 3 for trimester systems)
+  startDate            DateTime
+  endDate              DateTime
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  feeAmount            Decimal?       @db.Decimal(10, 2)
+  status               SemesterStatus @default(UPCOMING)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  modules        Module[]
+  registrations  SemesterRegistration[]
+  calendarEvents CalendarEvent[]
+
+  @@unique([academicYearId, semesterNumber])
+}
+
+model Module {
+  id          String  @id @default(cuid())
+  code        String // e.g. "CS101" — unique per offering, not globally
+  title       String
+  description String?
+  credits     Int?
+  yearLevel   Int // curriculum year of study within the program (1,2,3,4)
+  capacity    Int?
+  isActive    Boolean @default(true)
+
+  programId      String
+  program        Program      @relation(fields: [programId], references: [id])
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  semesterId     String
+  semester       Semester     @relation(fields: [semesterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  weeks               ModuleWeek[]
+  lecturerAssignments LecturerModuleAssignment[]
+  announcements       Announcement[]
+  enrollments         Enrollment[]
+  registrationModules RegistrationModule[]
+
+  @@unique([code, academicYearId, semesterId])
+  @@index([programId])
+  @@index([academicYearId, semesterId])
+}
+
+model LecturerModuleAssignment {
+  id           String   @id @default(cuid())
+  lecturerId   String
+  lecturer     User     @relation("LecturerAssignments", fields: [lecturerId], references: [id])
+  moduleId     String
+  module       Module   @relation(fields: [moduleId], references: [id])
+  assignedById String?
+  assignedBy   User?    @relation("AssignedBy", fields: [assignedById], references: [id])
+  assignedAt   DateTime @default(now())
+
+  @@unique([lecturerId, moduleId])
+}
+
+// ---------- WEEKLY CONTENT ----------
+
+model ModuleWeek {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  weekNumber  Int
+  title       String? // e.g. "Week 1: Introduction"
+  description String?
+  orderIndex  Int // supports drag-reorder independent of weekNumber
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contentItems ContentItem[]
+
+  @@unique([moduleId, weekNumber])
+}
+
+model ContentItem {
+  id          String        @id @default(cuid())
+  weekId      String
+  week        ModuleWeek    @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  type        ContentType
+  title       String
+  description String?
+  status      ContentStatus @default(DRAFT)
+  orderIndex  Int
+  publishedAt DateTime?
+
+  // type-specific, nullable fields (single-table, pragmatic for Phase 1)
+  fileUrl       String?
+  fileName      String?
+  fileSizeBytes Int?
+  mimeType      String?
+  linkUrl       String?
+  videoUrl      String?
+  zoomJoinUrl   String?
+  zoomMeetingId String?
+  zoomPasscode  String?
+  richTextHtml  String? @db.Text
+
+  // assignment placeholder fields (structure only, no grading flow in Phase 1)
+  isAssignment Boolean   @default(false)
+  dueDate      DateTime?
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions Submission[]
+
+  @@index([weekId, status])
+}
+
+model Submission {
+  // Schema stub only — no server actions/UI in Phase 1 per scope.
+  id            String      @id @default(cuid())
+  contentItemId String
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User        @relation(fields: [studentId], references: [id])
+  textResponse  String?     @db.Text
+  fileUrl       String?
+  submittedAt   DateTime    @default(now())
+  grade         Decimal?    @db.Decimal(5, 2)
+  feedback      String?
+  gradedAt      DateTime?
+
+  @@unique([contentItemId, studentId])
+}
+
+// ---------- ANNOUNCEMENTS ----------
+
+model Announcement {
+  id          String            @id @default(cuid())
+  scope       AnnouncementScope
+  title       String
+  body        String            @db.Text
+  isPinned    Boolean           @default(false)
+  publishedAt DateTime          @default(now())
+
+  moduleId String? // required (non-null) when scope = MODULE; validated in the action layer
+  module   Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scope, moduleId])
+}
+
+// ---------- REGISTRATION & PAYMENT ----------
+
+model SemesterRegistration {
+  id              String             @id @default(cuid())
+  studentId       String
+  student         User               @relation("StudentRegistrations", fields: [studentId], references: [id])
+  semesterId      String
+  semester        Semester           @relation(fields: [semesterId], references: [id])
+  status          RegistrationStatus @default(PAYMENT_PENDING)
+  submittedAt     DateTime?
+  decidedAt       DateTime?
+  decidedById     String?
+  decidedBy       User?              @relation("DecidedBy", fields: [decidedById], references: [id])
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrationModules RegistrationModule[]
+  paymentRecords       PaymentRecord[]
+
+  @@unique([studentId, semesterId])
+  @@index([status])
+}
+
+model RegistrationModule {
+  id             String               @id @default(cuid())
+  registrationId String
+  registration   SemesterRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  moduleId       String
+  module         Module               @relation(fields: [moduleId], references: [id])
+  createdAt      DateTime             @default(now())
+
+  @@unique([registrationId, moduleId])
+}
+
+model PaymentRecord {
+  id                 String                    @id @default(cuid())
+  registrationId     String
+  registration       SemesterRegistration      @relation(fields: [registrationId], references: [id])
+  amount             Decimal                   @db.Decimal(10, 2)
+  currency           String                    @default("LKR")
+  receiptUrl         String
+  receiptFileName    String?
+  uploadedAt         DateTime                  @default(now())
+  verificationStatus PaymentVerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedBy         User?                     @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedAt         DateTime?
+  verificationNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([verificationStatus])
+}
+
+model Enrollment {
+  id             String           @id @default(cuid())
+  studentId      String
+  student        User             @relation(fields: [studentId], references: [id])
+  moduleId       String
+  module         Module           @relation(fields: [moduleId], references: [id])
+  registrationId String? // audit link back to the approving registration
+  status         EnrollmentStatus @default(ACTIVE)
+  enrolledAt     DateTime         @default(now())
+
+  @@unique([studentId, moduleId])
+}
+
+// ---------- CALENDAR ----------
+
+model CalendarEvent {
+  id             String            @id @default(cuid())
+  title          String
+  description    String?
+  type           CalendarEventType
+  startDate      DateTime
+  endDate        DateTime?
+  isAllDay       Boolean           @default(true)
+  academicYearId String?
+  semesterId     String?
+  semester       Semester?         @relation(fields: [semesterId], references: [id])
+  createdById    String
+  createdBy      User              @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startDate])
+}
+
+// ---------- NOTIFICATION AUDIT ----------
+
+model NotificationLog {
+  id              String             @id @default(cuid())
+  type            String // e.g. "REGISTRATION_APPROVED"
+  recipientEmail  String
+  recipientUserId String?
+  subject         String
+  status          NotificationStatus
+  error           String?
+  meta            Json?
+  sentAt          DateTime           @default(now())
+}
