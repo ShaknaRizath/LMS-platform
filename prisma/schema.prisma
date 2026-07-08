@@ -83,7 +83,7 @@ enum NotificationStatus {
 model User {
   id           String  @id @default(cuid())
   email        String  @unique
-  passwordHash String
+  passwordHash String? // null for OAuth-only accounts (e.g. Google sign-in)
   firstName    String
   lastName     String
   phone        String?
