@@ -81,6 +81,15 @@ export default async function StudentRegistrationDetailPage({
               <div key={payment.id} className="flex items-center justify-between text-sm">
                 <span>
                   LKR {payment.amount.toString()} — uploaded {payment.uploadedAt.toLocaleDateString()}
+                  {" · "}
+                  <a
+                    href={payment.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    View receipt
+                  </a>
                 </span>
                 <span className="text-muted-foreground">{payment.verificationStatus}</span>
               </div>

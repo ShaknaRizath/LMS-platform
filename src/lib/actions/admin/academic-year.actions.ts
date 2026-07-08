@@ -36,6 +36,106 @@ export async function createAcademicYear(
   redirect(`/admin/academic-years/${academicYearId}`);
 }
 
+export async function updateAcademicYear(
+  academicYearId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const parsed = academicYearSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  try {
+    await prisma.academicYear.update({ where: { id: academicYearId }, data: parsed.data });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "An academic year with this name already exists." };
+    }
+    throw error;
+  }
+
+  revalidatePath("/admin/academic-years");
+  revalidatePath(`/admin/academic-years/${academicYearId}`);
+  return undefined;
+}
+
+export async function deleteAcademicYear(
+  academicYearId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const [semesterCount, moduleCount] = await Promise.all([
+    prisma.semester.count({ where: { academicYearId } }),
+    prisma.module.count({ where: { academicYearId } }),
+  ]);
+  if (semesterCount > 0 || moduleCount > 0) {
+    return {
+      error: `Can't delete — ${semesterCount} semester(s) and ${moduleCount} module(s) belong to this academic year.`,
+    };
+  }
+
+  await prisma.academicYear.delete({ where: { id: academicYearId } });
+  revalidatePath("/admin/academic-years");
+  redirect("/admin/academic-years");
+}
+
+export async function updateSemester(
+  semesterId: string,
+  academicYearId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const parsed = semesterSchema.safeParse({
+    ...Object.fromEntries(formData),
+    academicYearId,
+  });
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  try {
+    await prisma.semester.update({ where: { id: semesterId }, data: parsed.data });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "A semester with this number already exists for this academic year." };
+    }
+    throw error;
+  }
+
+  revalidatePath(`/admin/academic-years/${academicYearId}`);
+  return undefined;
+}
+
+export async function deleteSemester(
+  semesterId: string,
+  academicYearId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const [moduleCount, registrationCount] = await Promise.all([
+    prisma.module.count({ where: { semesterId } }),
+    prisma.semesterRegistration.count({ where: { semesterId } }),
+  ]);
+  if (moduleCount > 0 || registrationCount > 0) {
+    return {
+      error: `Can't delete — ${moduleCount} module(s) and ${registrationCount} registration(s) belong to this semester.`,
+    };
+  }
+
+  await prisma.semester.delete({ where: { id: semesterId } });
+  revalidatePath(`/admin/academic-years/${academicYearId}`);
+  return undefined;
+}
+
 export async function setActiveAcademicYear(academicYearId: string) {
   await requireRole(["SUPER_ADMIN", "ADMIN"]);
 

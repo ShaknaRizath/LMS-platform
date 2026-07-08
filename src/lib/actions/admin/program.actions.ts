@@ -67,3 +67,25 @@ export async function toggleProgramActive(programId: string, isActive: boolean) 
   revalidatePath("/admin/programs");
   revalidatePath(`/admin/programs/${programId}`);
 }
+
+export async function deleteProgram(
+  programId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const [moduleCount, studentCount] = await Promise.all([
+    prisma.module.count({ where: { programId } }),
+    prisma.user.count({ where: { programId } }),
+  ]);
+  if (moduleCount > 0 || studentCount > 0) {
+    return {
+      error: `Can't delete — ${moduleCount} module(s) and ${studentCount} student(s) are linked to this program. Deactivate it instead.`,
+    };
+  }
+
+  await prisma.program.delete({ where: { id: programId } });
+  revalidatePath("/admin/programs");
+  redirect("/admin/programs");
+}

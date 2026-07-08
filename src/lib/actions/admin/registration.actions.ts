@@ -23,7 +23,7 @@ export async function verifyPayment(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
 
   const parsed = verifyPaymentSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -56,11 +56,12 @@ export async function verifyPayment(
   );
 
   revalidatePath(`/admin/registrations/${registrationId}`);
+  revalidatePath(`/finance/registrations/${registrationId}`);
   return undefined;
 }
 
 export async function approveRegistration(registrationId: string): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
 
   const registration = await prisma.semesterRegistration.findUnique({
     where: { id: registrationId },
@@ -102,6 +103,8 @@ export async function approveRegistration(registrationId: string): Promise<Actio
 
   revalidatePath(`/admin/registrations/${registrationId}`);
   revalidatePath("/admin/registrations");
+  revalidatePath(`/finance/registrations/${registrationId}`);
+  revalidatePath("/finance/registrations");
   return undefined;
 }
 
@@ -110,7 +113,7 @@ export async function rejectRegistration(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
 
   const parsed = rejectRegistrationSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -148,5 +151,7 @@ export async function rejectRegistration(
 
   revalidatePath(`/admin/registrations/${registrationId}`);
   revalidatePath("/admin/registrations");
+  revalidatePath(`/finance/registrations/${registrationId}`);
+  revalidatePath("/finance/registrations");
   return undefined;
 }

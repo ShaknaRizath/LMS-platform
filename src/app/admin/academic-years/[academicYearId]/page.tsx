@@ -13,7 +13,16 @@ import {
 } from "@/components/ui/table";
 import { SemesterForm } from "@/components/admin/semester-form";
 import { SemesterStatusSelect } from "@/components/admin/semester-status-select";
-import { createSemester, setActiveAcademicYear } from "@/lib/actions/admin/academic-year.actions";
+import { AcademicYearForm } from "@/components/admin/academic-year-form";
+import { DetailSummary } from "@/components/admin/detail-summary";
+import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import { EditSemesterDialog } from "@/components/admin/edit-semester-dialog";
+import {
+  createSemester,
+  setActiveAcademicYear,
+  updateAcademicYear,
+  deleteAcademicYear,
+} from "@/lib/actions/admin/academic-year.actions";
 
 export default async function AcademicYearDetailPage({
   params,
@@ -50,8 +59,42 @@ export default async function AcademicYearDetailPage({
               </Button>
             </form>
           )}
+          <DeleteConfirmButton
+            action={deleteAcademicYear.bind(null, academicYear.id)}
+            title={`Delete ${academicYear.name}?`}
+            description="This can't be undone. Academic years with semesters or modules can't be deleted."
+          />
         </div>
       </div>
+
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DetailSummary
+            items={[
+              { label: "Name", value: academicYear.name },
+              { label: "Start date", value: academicYear.startDate.toLocaleDateString() },
+              { label: "End date", value: academicYear.endDate.toLocaleDateString() },
+              { label: "Status", value: academicYear.isActive ? "Active" : "Inactive" },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Edit academic year</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AcademicYearForm
+            action={updateAcademicYear.bind(null, academicYear.id)}
+            defaultValues={academicYear}
+            submitLabel="Save changes"
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -67,6 +110,7 @@ export default async function AcademicYearDetailPage({
                   <TableHead>Registration window</TableHead>
                   <TableHead>Fee</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -89,6 +133,21 @@ export default async function AcademicYearDetailPage({
                         semesterId={semester.id}
                         academicYearId={academicYear.id}
                         status={semester.status}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <EditSemesterDialog
+                        semester={{
+                          id: semester.id,
+                          name: semester.name,
+                          semesterNumber: semester.semesterNumber,
+                          startDate: semester.startDate,
+                          endDate: semester.endDate,
+                          registrationOpensAt: semester.registrationOpensAt,
+                          registrationClosesAt: semester.registrationClosesAt,
+                          feeAmount: semester.feeAmount?.toString() ?? null,
+                        }}
+                        academicYearId={academicYear.id}
                       />
                     </TableCell>
                   </TableRow>

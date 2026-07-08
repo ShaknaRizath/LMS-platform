@@ -10,6 +10,16 @@ export function welcomeSetPasswordTemplate(params: { firstName: string; setPassw
   };
 }
 
+export function signupWelcomeTemplate(params: { firstName: string }) {
+  return {
+    subject: "Welcome to CIMS Campus",
+    html: `
+      <p>Hi ${params.firstName},</p>
+      <p>Your CIMS Campus account has been created. You can sign in any time with the email and password you chose.</p>
+    `,
+  };
+}
+
 export function passwordResetTemplate(params: { firstName: string; resetUrl: string }) {
   return {
     subject: "Reset your CIMS Campus password",

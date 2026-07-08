@@ -41,7 +41,11 @@ export function CalendarEventForm() {
           </Field>
           <Field>
             <FieldLabel htmlFor="type">Type</FieldLabel>
-            <Select name="type" defaultValue="OTHER">
+            <Select
+              name="type"
+              defaultValue="OTHER"
+              items={CALENDAR_EVENT_TYPES.map((type) => ({ value: type, label: TYPE_LABELS[type] }))}
+            >
               <SelectTrigger id="type" className="w-full">
                 <SelectValue />
               </SelectTrigger>

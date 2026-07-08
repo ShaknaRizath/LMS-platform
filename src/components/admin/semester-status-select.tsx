@@ -28,6 +28,7 @@ export function SemesterStatusSelect({
     <Select
       defaultValue={status}
       disabled={pending}
+      items={STATUS_OPTIONS.map((option) => ({ value: option, label: option }))}
       onValueChange={(value) =>
         startTransition(() => {
           setSemesterStatus(semesterId, academicYearId, value as SemesterStatus);

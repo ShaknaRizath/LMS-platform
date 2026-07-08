@@ -41,7 +41,7 @@ export default auth((req) => {
     }
   }
 
-  if (pathname === "/login" && role) {
+  if ((pathname === "/login" || pathname === "/signup" || pathname === "/") && role) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], req.nextUrl));
   }
 

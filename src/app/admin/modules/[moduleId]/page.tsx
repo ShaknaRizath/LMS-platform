@@ -2,9 +2,17 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ModuleForm } from "@/components/admin/module-form";
 import { AssignLecturerForm } from "@/components/admin/assign-lecturer-form";
-import { updateModule, unassignLecturer } from "@/lib/actions/admin/module.actions";
+import { DetailSummary } from "@/components/admin/detail-summary";
+import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import {
+  updateModule,
+  unassignLecturer,
+  toggleModuleActive,
+  deleteModule,
+} from "@/lib/actions/admin/module.actions";
 
 export default async function ModuleDetailPage({
   params,
@@ -35,13 +43,49 @@ export default async function ModuleDetailPage({
 
   const assignedIds = new Set(module_.lecturerAssignments.map((a) => a.lecturerId));
   const availableLecturers = lecturers.filter((l) => !assignedIds.has(l.id));
+  const toggleAction = toggleModuleActive.bind(null, module_.id, !module_.isActive);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{module_.title}</h1>
-        <p className="text-muted-foreground">{module_.code}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{module_.title}</h1>
+          <p className="text-muted-foreground">{module_.code}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant={module_.isActive ? "secondary" : "outline"}>
+            {module_.isActive ? "Active" : "Inactive"}
+          </Badge>
+          <form action={toggleAction}>
+            <Button type="submit" variant="outline">
+              {module_.isActive ? "Deactivate" : "Activate"}
+            </Button>
+          </form>
+          <DeleteConfirmButton
+            action={deleteModule.bind(null, module_.id)}
+            title={`Delete ${module_.title}?`}
+            description="This can't be undone. Modules with lecturer assignments, enrollments, or registrations can't be deleted — deactivate instead."
+          />
+        </div>
       </div>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DetailSummary
+            items={[
+              { label: "Code", value: module_.code },
+              { label: "Title", value: module_.title },
+              { label: "Year level", value: module_.yearLevel },
+              { label: "Credits", value: module_.credits },
+              { label: "Capacity", value: module_.capacity },
+              { label: "Description", value: module_.description },
+            ]}
+          />
+        </CardContent>
+      </Card>
 
       <Card className="max-w-2xl">
         <CardHeader>

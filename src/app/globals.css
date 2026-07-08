@@ -69,11 +69,12 @@
   --border: #e5e5e6;
   --input: #e5e5e6;
   --ring: #000000;
-  --chart-1: #000000;
-  --chart-2: #404040;
-  --chart-3: #737373;
-  --chart-4: #a3a3a3;
-  --chart-5: #d4d4d4;
+  /* Chart-only categorical palette — rest of the UI stays monochrome. */
+  --chart-1: #2a78d6;
+  --chart-2: #1baf7a;
+  --chart-3: #eda100;
+  --chart-4: #008300;
+  --chart-5: #4a3aa7;
   --radius: 1rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #000000;
@@ -104,11 +105,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #ffffff;
-  --chart-1: #ffffff;
-  --chart-2: #d4d4d4;
-  --chart-3: #a3a3a3;
-  --chart-4: #737373;
-  --chart-5: #404040;
+  --chart-1: #3987e5;
+  --chart-2: #199e70;
+  --chart-3: #c98500;
+  --chart-4: #008300;
+  --chart-5: #9085e9;
   --sidebar: #111111;
   --sidebar-foreground: #fafafa;
   --sidebar-primary: #ffffff;

@@ -59,7 +59,11 @@ export function ModuleForm({
 
         <Field>
           <FieldLabel htmlFor="programId">Program</FieldLabel>
-          <Select name="programId" defaultValue={defaultValues?.programId}>
+          <Select
+            name="programId"
+            defaultValue={defaultValues?.programId}
+            items={options.programs.map((program) => ({ value: program.id, label: program.name }))}
+          >
             <SelectTrigger id="programId" className="w-full">
               <SelectValue placeholder="Select a program" />
             </SelectTrigger>
@@ -76,7 +80,14 @@ export function ModuleForm({
 
         <Field>
           <FieldLabel htmlFor="semesterId">Semester</FieldLabel>
-          <Select name="semesterId" defaultValue={defaultValues?.semesterId}>
+          <Select
+            name="semesterId"
+            defaultValue={defaultValues?.semesterId}
+            items={options.semesters.map((semester) => ({
+              value: semester.id,
+              label: `${semester.academicYearName} — ${semester.name}`,
+            }))}
+          >
             <SelectTrigger id="semesterId" className="w-full">
               <SelectValue placeholder="Select a semester" />
             </SelectTrigger>

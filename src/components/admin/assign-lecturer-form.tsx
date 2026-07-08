@@ -23,7 +23,14 @@ export function AssignLecturerForm({
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={selected} onValueChange={(value) => setSelected(value ?? "")}>
+      <Select
+        value={selected}
+        onValueChange={(value) => setSelected(value ?? "")}
+        items={lecturers.map((lecturer) => ({
+          value: lecturer.id,
+          label: `${lecturer.firstName} ${lecturer.lastName}`,
+        }))}
+      >
         <SelectTrigger className="w-64">
           <SelectValue placeholder="Select a lecturer" />
         </SelectTrigger>

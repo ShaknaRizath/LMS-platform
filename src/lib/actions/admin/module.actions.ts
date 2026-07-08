@@ -84,6 +84,36 @@ export async function updateModule(
   redirect(`/admin/modules/${moduleId}`);
 }
 
+export async function toggleModuleActive(moduleId: string, isActive: boolean) {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await prisma.module.update({ where: { id: moduleId }, data: { isActive } });
+  revalidatePath("/admin/modules");
+  revalidatePath(`/admin/modules/${moduleId}`);
+}
+
+export async function deleteModule(
+  moduleId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const [assignmentCount, enrollmentCount, registrationModuleCount] = await Promise.all([
+    prisma.lecturerModuleAssignment.count({ where: { moduleId } }),
+    prisma.enrollment.count({ where: { moduleId } }),
+    prisma.registrationModule.count({ where: { moduleId } }),
+  ]);
+  if (assignmentCount > 0 || enrollmentCount > 0 || registrationModuleCount > 0) {
+    return {
+      error: `Can't delete — this module has ${assignmentCount} lecturer assignment(s), ${enrollmentCount} enrollment(s), and ${registrationModuleCount} registration(s) linked to it. Deactivate it instead.`,
+    };
+  }
+
+  await prisma.module.delete({ where: { id: moduleId } });
+  revalidatePath("/admin/modules");
+  redirect("/admin/modules");
+}
+
 export async function assignLecturer(moduleId: string, lecturerId: string) {
   const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
 

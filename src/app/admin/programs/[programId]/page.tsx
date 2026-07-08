@@ -13,7 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ProgramForm } from "@/components/admin/program-form";
-import { updateProgram, toggleProgramActive } from "@/lib/actions/admin/program.actions";
+import { DetailSummary } from "@/components/admin/detail-summary";
+import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import { updateProgram, toggleProgramActive, deleteProgram } from "@/lib/actions/admin/program.actions";
 
 export default async function ProgramDetailPage({
   params,
@@ -52,8 +54,29 @@ export default async function ProgramDetailPage({
               {program.isActive ? "Deactivate" : "Activate"}
             </Button>
           </form>
+          <DeleteConfirmButton
+            action={deleteProgram.bind(null, program.id)}
+            title={`Delete ${program.name}?`}
+            description="This can't be undone. Programs with modules or students can't be deleted — deactivate instead."
+          />
         </div>
       </div>
+
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DetailSummary
+            items={[
+              { label: "Name", value: program.name },
+              { label: "Code", value: program.code },
+              { label: "Duration", value: `${program.durationYears} year(s)` },
+              { label: "Description", value: program.description },
+            ]}
+          />
+        </CardContent>
+      </Card>
 
       <Card className="max-w-xl">
         <CardHeader>

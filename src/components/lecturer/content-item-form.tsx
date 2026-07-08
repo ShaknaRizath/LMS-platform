@@ -71,7 +71,15 @@ export function ContentItemForm({
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="type">Content type</FieldLabel>
-          <Select name="type" value={type} onValueChange={(value) => setType(value as ContentType)}>
+          <Select
+            name="type"
+            value={type}
+            onValueChange={(value) => setType(value as ContentType)}
+            items={(Object.keys(TYPE_LABELS) as ContentType[]).map((option) => ({
+              value: option,
+              label: TYPE_LABELS[option],
+            }))}
+          >
             <SelectTrigger id="type" className="w-full">
               <SelectValue />
             </SelectTrigger>

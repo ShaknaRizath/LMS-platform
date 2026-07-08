@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 import {
   Table,
@@ -28,7 +29,7 @@ export default async function FinanceDashboardPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Finance</h1>
-        <p className="text-muted-foreground">Payments awaiting verification (read-only).</p>
+        <p className="text-muted-foreground">Payments awaiting verification.</p>
       </div>
 
       {payments.length === 0 ? (
@@ -38,7 +39,7 @@ export default async function FinanceDashboardPage() {
               <Wallet />
             </EmptyMedia>
             <EmptyTitle>No pending payments</EmptyTitle>
-            <EmptyDescription>All uploaded payments have been reviewed by an Administrator.</EmptyDescription>
+            <EmptyDescription>All uploaded payments have been reviewed.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -56,7 +57,12 @@ export default async function FinanceDashboardPage() {
               {payments.map((payment) => (
                 <TableRow key={payment.id}>
                   <TableCell>
-                    {payment.registration.student.firstName} {payment.registration.student.lastName}
+                    <Link
+                      href={`/finance/registrations/${payment.registrationId}`}
+                      className="font-medium hover:underline"
+                    >
+                      {payment.registration.student.firstName} {payment.registration.student.lastName}
+                    </Link>
                   </TableCell>
                   <TableCell>LKR {payment.amount.toString()}</TableCell>
                   <TableCell>{payment.uploadedAt.toLocaleDateString()}</TableCell>

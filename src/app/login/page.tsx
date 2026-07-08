@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { LoginForm } from "@/components/auth/login-form";
 
 export default async function LoginPage({
@@ -15,16 +9,14 @@ export default async function LoginPage({
   const { callbackUrl } = await searchParams;
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-16">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">CIMS Campus</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm callbackUrl={callbackUrl} />
-        </CardContent>
-      </Card>
-    </div>
+    <AuthSplitLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold text-foreground">Welcome back!</h1>
+        <p className="mt-1 text-muted-foreground">
+          Enter your credentials to access your account
+        </p>
+      </div>
+      <LoginForm callbackUrl={callbackUrl} />
+    </AuthSplitLayout>
   );
 }

@@ -5,12 +5,15 @@ import Link from "next/link";
 import { login, type LoginState } from "@/lib/actions/auth/login.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldGroup,
   FieldLabel,
   FieldError,
+  FieldSeparator,
 } from "@/components/ui/field";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
@@ -23,14 +26,15 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
       <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <FieldLabel htmlFor="email">Email address</FieldLabel>
           <Input
             id="email"
             name="email"
             type="email"
-            placeholder="you@cims.edu"
+            placeholder="Enter your email"
             required
             autoComplete="email"
+            className="h-11 rounded-full px-4"
           />
         </Field>
         <Field>
@@ -47,14 +51,28 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
             id="password"
             name="password"
             type="password"
+            placeholder="Password"
             required
             autoComplete="current-password"
+            className="h-11 rounded-full px-4"
           />
         </Field>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox name="rememberMe" defaultChecked />
+          Remember for 30 days
+        </label>
         {state?.error && <FieldError>{state.error}</FieldError>}
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Signing in..." : "Sign in"}
+        <Button type="submit" disabled={pending} className="h-11 w-full rounded-full">
+          {pending ? "Signing in..." : "Login"}
         </Button>
+        <FieldSeparator>Or</FieldSeparator>
+        <OAuthButtons />
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">
+            Sign Up
+          </Link>
+        </p>
       </FieldGroup>
     </form>
   );

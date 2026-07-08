@@ -81,7 +81,11 @@ export function UserForm({
 
         <Field>
           <FieldLabel htmlFor="role">Role</FieldLabel>
-          <Select name="role" defaultValue={defaultValues?.role}>
+          <Select
+            name="role"
+            defaultValue={defaultValues?.role}
+            items={ROLE_OPTIONS.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+          >
             <SelectTrigger id="role" className="w-full">
               <SelectValue placeholder="Select a role" />
             </SelectTrigger>
@@ -98,7 +102,11 @@ export function UserForm({
 
         <Field>
           <FieldLabel htmlFor="programId">Program (students only)</FieldLabel>
-          <Select name="programId" defaultValue={defaultValues?.programId ?? undefined}>
+          <Select
+            name="programId"
+            defaultValue={defaultValues?.programId ?? undefined}
+            items={programs.map((program) => ({ value: program.id, label: program.name }))}
+          >
             <SelectTrigger id="programId" className="w-full">
               <SelectValue placeholder="No program" />
             </SelectTrigger>
