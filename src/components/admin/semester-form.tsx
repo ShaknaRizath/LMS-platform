@@ -23,7 +23,6 @@ export function SemesterForm({
     endDate: Date;
     registrationOpensAt: Date | null;
     registrationClosesAt: Date | null;
-    feeAmount: string | number | null;
   };
   submitLabel?: string;
 }) {
@@ -92,17 +91,6 @@ export function SemesterForm({
               defaultValue={toDateInputValue(defaultValues?.registrationClosesAt)}
             />
           </Field>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="feeAmount">Semester fee</FieldLabel>
-          <Input
-            id="feeAmount"
-            name="feeAmount"
-            type="number"
-            min={0}
-            step="0.01"
-            defaultValue={defaultValues?.feeAmount ?? ""}
-          />
         </Field>
         {state?.error && <FieldError>{state.error}</FieldError>}
         <Button type="submit" disabled={pending} className="self-start">

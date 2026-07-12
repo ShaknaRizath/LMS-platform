@@ -82,9 +82,20 @@ async function main() {
       endDate: new Date("2026-05-30"),
       registrationOpensAt: new Date("2024-01-01"),
       registrationClosesAt: new Date("2030-01-01"),
-      feeAmount: 50000,
       status: "ACTIVE",
     },
+  });
+
+  // Fee varies by program (and by year/semester of study), not by academic-year semester slot.
+  await prisma.programCurriculumFee.upsert({
+    where: { programId_yearLevel_semesterNumber: { programId: cs.id, yearLevel: 1, semesterNumber: 2 } },
+    update: {},
+    create: { programId: cs.id, yearLevel: 1, semesterNumber: 2, amount: 50000 },
+  });
+  await prisma.programCurriculumFee.upsert({
+    where: { programId_yearLevel_semesterNumber: { programId: bba.id, yearLevel: 1, semesterNumber: 2 } },
+    update: {},
+    create: { programId: bba.id, yearLevel: 1, semesterNumber: 2, amount: 45000 },
   });
 
   // ---------- Modules ----------
@@ -281,6 +292,7 @@ async function main() {
       data: {
         studentId: student.id,
         semesterId: activeSemester.id,
+        yearLevel: 1,
         status: status === "PAYMENT_PENDING" ? "PAYMENT_PENDING" : status,
         submittedAt: status === "PAYMENT_PENDING" ? null : new Date(),
         decidedAt: status === "APPROVED" || status === "REJECTED" ? new Date() : null,

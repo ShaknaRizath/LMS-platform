@@ -21,15 +21,16 @@ export type EditableSemester = {
   endDate: Date;
   registrationOpensAt: Date | null;
   registrationClosesAt: Date | null;
-  feeAmount: string | null;
 };
 
 export function EditSemesterDialog({
   semester,
   academicYearId,
+  deleteWarning,
 }: {
   semester: EditableSemester;
   academicYearId: string;
+  deleteWarning: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -49,14 +50,13 @@ export function EditSemesterDialog({
             endDate: semester.endDate,
             registrationOpensAt: semester.registrationOpensAt,
             registrationClosesAt: semester.registrationClosesAt,
-            feeAmount: semester.feeAmount,
           }}
           submitLabel="Save changes"
         />
         <DeleteConfirmButton
           action={deleteSemester.bind(null, semester.id, academicYearId)}
           title={`Delete ${semester.name}?`}
-          description="This can't be undone. Semesters with modules or registrations can't be deleted."
+          description={deleteWarning}
         />
       </DialogContent>
     </Dialog>

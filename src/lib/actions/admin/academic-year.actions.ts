@@ -69,16 +69,10 @@ export async function deleteAcademicYear(
 ): Promise<ActionState> {
   await requireRole(["SUPER_ADMIN", "ADMIN"]);
 
-  const [semesterCount, moduleCount] = await Promise.all([
-    prisma.semester.count({ where: { academicYearId } }),
-    prisma.module.count({ where: { academicYearId } }),
-  ]);
-  if (semesterCount > 0 || moduleCount > 0) {
-    return {
-      error: `Can't delete — ${semesterCount} semester(s) and ${moduleCount} module(s) belong to this academic year.`,
-    };
-  }
-
+  // Cascades: semesters, modules, lecturer assignments, enrollments, registrations,
+  // payment records, announcements, weeks/content/submissions all belong to this year
+  // and are deleted with it (see schema.prisma onDelete: Cascade). Students keep their
+  // accounts — only their programId is cleared if their program is deleted too.
   await prisma.academicYear.delete({ where: { id: academicYearId } });
   revalidatePath("/admin/academic-years");
   redirect("/admin/academic-years");
@@ -121,16 +115,8 @@ export async function deleteSemester(
 ): Promise<ActionState> {
   await requireRole(["SUPER_ADMIN", "ADMIN"]);
 
-  const [moduleCount, registrationCount] = await Promise.all([
-    prisma.module.count({ where: { semesterId } }),
-    prisma.semesterRegistration.count({ where: { semesterId } }),
-  ]);
-  if (moduleCount > 0 || registrationCount > 0) {
-    return {
-      error: `Can't delete — ${moduleCount} module(s) and ${registrationCount} registration(s) belong to this semester.`,
-    };
-  }
-
+  // Cascades: modules, lecturer assignments, enrollments, registrations, and payment
+  // records for this semester are deleted with it (see schema.prisma onDelete: Cascade).
   await prisma.semester.delete({ where: { id: semesterId } });
   revalidatePath(`/admin/academic-years/${academicYearId}`);
   return undefined;

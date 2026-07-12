@@ -31,3 +31,11 @@ export async function sendNotificationEmail(
 
   return result;
 }
+
+/** Emails+ids of active users who review payments/registrations (admins and finance staff). */
+export async function getPaymentReviewers() {
+  return prisma.user.findMany({
+    where: { role: { in: ["SUPER_ADMIN", "ADMIN", "FINANCE"] }, isActive: true },
+    select: { id: true, email: true },
+  });
+}

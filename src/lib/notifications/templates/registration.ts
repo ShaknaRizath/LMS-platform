@@ -41,3 +41,18 @@ export function paymentRejectedTemplate(params: { firstName: string; reason: str
     `,
   };
 }
+
+export function gatewayPaymentReceivedTemplate(params: {
+  studentName: string;
+  semesterLabel: string;
+  amount: string;
+  currency: string;
+}) {
+  return {
+    subject: "New online payment awaiting registration review",
+    html: `
+      <p>${params.studentName} paid ${params.currency} ${params.amount} for ${params.semesterLabel} through the LMS payment gateway.</p>
+      <p>The payment has been auto-verified by the gateway. Please review and approve their registration in CIMS Campus.</p>
+    `,
+  };
+}

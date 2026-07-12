@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { programSchema } from "@/lib/validation/program.schema";
+import { programCurriculumFeeSchema } from "@/lib/validation/program-fee.schema";
 import type { ActionState } from "@/lib/actions/action-state";
 
 export async function createProgram(
@@ -75,17 +76,35 @@ export async function deleteProgram(
 ): Promise<ActionState> {
   await requireRole(["SUPER_ADMIN", "ADMIN"]);
 
-  const [moduleCount, studentCount] = await Promise.all([
-    prisma.module.count({ where: { programId } }),
-    prisma.user.count({ where: { programId } }),
-  ]);
-  if (moduleCount > 0 || studentCount > 0) {
-    return {
-      error: `Can't delete — ${moduleCount} module(s) and ${studentCount} student(s) are linked to this program. Deactivate it instead.`,
-    };
-  }
-
+  // Cascades: modules and everything under them (lecturer assignments, enrollments,
+  // registrations, payment records, announcements, content/submissions) are deleted
+  // with this program (see schema.prisma onDelete: Cascade). Students keep their
+  // accounts — their programId is just cleared (onDelete: SetNull), not the account itself.
   await prisma.program.delete({ where: { id: programId } });
   revalidatePath("/admin/programs");
   redirect("/admin/programs");
+}
+
+export async function setProgramCurriculumFee(
+  programId: string,
+  yearLevel: number,
+  semesterNumber: number,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const parsed = programCurriculumFeeSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  await prisma.programCurriculumFee.upsert({
+    where: { programId_yearLevel_semesterNumber: { programId, yearLevel, semesterNumber } },
+    update: { amount: parsed.data.amount },
+    create: { programId, yearLevel, semesterNumber, amount: parsed.data.amount },
+  });
+
+  revalidatePath(`/admin/programs/${programId}`);
+  return undefined;
 }

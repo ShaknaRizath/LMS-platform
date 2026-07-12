@@ -18,6 +18,14 @@ const TYPE_ICONS: Record<ContentType, typeof FileText> = {
   ZOOM: Presentation,
 };
 
+const TYPE_ICON_COLORS: Record<ContentType, string> = {
+  RICH_TEXT: "#5EC3E0",
+  FILE: "#E0637B",
+  LINK: "#6FCB8F",
+  VIDEO: "#8B7FE0",
+  ZOOM: "#4FB8B0",
+};
+
 export function ContentItemView({
   item,
 }: {
@@ -43,7 +51,7 @@ export function ContentItemView({
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-4">
       <div className="flex items-center gap-2">
-        <Icon className="size-4 text-muted-foreground" />
+        <Icon className="size-4" style={{ color: TYPE_ICON_COLORS[item.type] }} />
         <p className="text-sm font-medium">{item.title}</p>
         {item.isAssignment && (
           <Badge variant="outline">

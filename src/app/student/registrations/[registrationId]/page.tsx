@@ -28,7 +28,12 @@ export default async function StudentRegistrationDetailPage({
   const availableModules =
     registration.status === "REJECTED"
       ? await prisma.module.findMany({
-          where: { programId: student.programId ?? undefined, semesterId: registration.semesterId, isActive: true },
+          where: {
+            programId: student.programId ?? undefined,
+            semesterId: registration.semesterId,
+            yearLevel: registration.yearLevel,
+            isActive: true,
+          },
           orderBy: { code: "asc" },
         })
       : [];
@@ -38,7 +43,7 @@ export default async function StudentRegistrationDetailPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
-            {registration.semester.academicYear.name} — {registration.semester.name}
+            Year {registration.yearLevel} — {registration.semester.academicYear.name} — {registration.semester.name}
           </h1>
           <p className="text-muted-foreground">
             Submitted {registration.submittedAt?.toLocaleDateString() ?? "—"}
@@ -80,16 +85,22 @@ export default async function StudentRegistrationDetailPage({
             {registration.paymentRecords.map((payment) => (
               <div key={payment.id} className="flex items-center justify-between text-sm">
                 <span>
-                  LKR {payment.amount.toString()} — uploaded {payment.uploadedAt.toLocaleDateString()}
-                  {" · "}
-                  <a
-                    href={payment.receiptUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    View receipt
-                  </a>
+                  LKR {payment.amount.toString()} —{" "}
+                  {payment.method === "GATEWAY" ? "paid via LMS Gateway" : "uploaded"}{" "}
+                  {payment.uploadedAt.toLocaleDateString()}
+                  {payment.receiptUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={payment.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        View receipt
+                      </a>
+                    </>
+                  )}
                 </span>
                 <span className="text-muted-foreground">{payment.verificationStatus}</span>
               </div>
@@ -108,14 +119,10 @@ export default async function StudentRegistrationDetailPage({
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Resubmit your registration</CardTitle>
-            <CardDescription>Update your module selection and resubmit for approval.</CardDescription>
+            <CardDescription>Resubmit for approval with the current module set for this year/semester.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResubmitRegistrationForm
-              registrationId={registration.id}
-              modules={availableModules}
-              currentModuleIds={registration.registrationModules.map((rm) => rm.moduleId)}
-            />
+            <ResubmitRegistrationForm registrationId={registration.id} modules={availableModules} />
           </CardContent>
         </Card>
       )}

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // load (P1017/ECONNREFUSED during `next build`). A real Postgres instance in
   // staging/production doesn't have this ceiling.
   experimental: {
-    cpus: 2,
+    cpus: 1,
   },
 };
 

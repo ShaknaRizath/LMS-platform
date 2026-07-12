@@ -22,7 +22,6 @@ export const semesterSchema = z
     endDate: z.coerce.date({ error: "Enter a valid end date." }),
     registrationOpensAt: z.coerce.date().optional(),
     registrationClosesAt: z.coerce.date().optional(),
-    feeAmount: z.coerce.number().min(0).optional(),
   })
   .refine((data) => data.endDate > data.startDate, {
     error: "End date must be after start date.",

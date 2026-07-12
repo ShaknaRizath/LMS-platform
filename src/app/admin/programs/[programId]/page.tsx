@@ -15,6 +15,7 @@ import {
 import { ProgramForm } from "@/components/admin/program-form";
 import { DetailSummary } from "@/components/admin/detail-summary";
 import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import { ProgramCurriculumFeeForm } from "@/components/admin/program-curriculum-fee-form";
 import { updateProgram, toggleProgramActive, deleteProgram } from "@/lib/actions/admin/program.actions";
 
 export default async function ProgramDetailPage({
@@ -38,6 +39,23 @@ export default async function ProgramDetailPage({
 
   const toggleAction = toggleProgramActive.bind(null, program.id, !program.isActive);
 
+  const [studentCount, assignmentCount, enrollmentCount, registrationCount, distinctSemesterNumbers, existingFees] =
+    await Promise.all([
+      prisma.user.count({ where: { programId } }),
+      prisma.lecturerModuleAssignment.count({ where: { module: { programId } } }),
+      prisma.enrollment.count({ where: { module: { programId } } }),
+      prisma.semesterRegistration.count({ where: { registrationModules: { some: { module: { programId } } } } }),
+      prisma.semester.findMany({ select: { semesterNumber: true }, distinct: ["semesterNumber"] }),
+      prisma.programCurriculumFee.findMany({ where: { programId } }),
+    ]);
+  const deleteWarning = `This permanently deletes ${program.modules.length} module(s), ${assignmentCount} lecturer assignment(s), ${enrollmentCount} enrollment(s), and ${registrationCount} registration(s) with their payment records. ${studentCount} student(s) will keep their accounts but lose their program assignment. This cannot be undone.`;
+  const feeMap = new Map(existingFees.map((f) => [`${f.yearLevel}-${f.semesterNumber}`, f.amount.toString()]));
+  const semesterNumbers =
+    distinctSemesterNumbers.length > 0
+      ? distinctSemesterNumbers.map((s) => s.semesterNumber).sort((a, b) => a - b)
+      : [1, 2];
+  const yearLevels = Array.from({ length: program.durationYears }, (_, i) => i + 1);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -57,7 +75,7 @@ export default async function ProgramDetailPage({
           <DeleteConfirmButton
             action={deleteProgram.bind(null, program.id)}
             title={`Delete ${program.name}?`}
-            description="This can't be undone. Programs with modules or students can't be deleted — deactivate instead."
+            description={deleteWarning}
           />
         </div>
       </div>
@@ -75,6 +93,45 @@ export default async function ProgramDetailPage({
               { label: "Description", value: program.description },
             ]}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Curriculum fees</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
+            One fee per year of study and semester — this is what students of this program pay
+            for that year/semester regardless of which academic year it falls in.
+          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Year</TableHead>
+                <TableHead>Semester</TableHead>
+                <TableHead>Fee (LKR)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {yearLevels.flatMap((yearLevel) =>
+                semesterNumbers.map((semesterNumber) => (
+                  <TableRow key={`${yearLevel}-${semesterNumber}`}>
+                    <TableCell>Year {yearLevel}</TableCell>
+                    <TableCell>Semester {semesterNumber}</TableCell>
+                    <TableCell>
+                      <ProgramCurriculumFeeForm
+                        programId={program.id}
+                        yearLevel={yearLevel}
+                        semesterNumber={semesterNumber}
+                        currentAmount={feeMap.get(`${yearLevel}-${semesterNumber}`) ?? null}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

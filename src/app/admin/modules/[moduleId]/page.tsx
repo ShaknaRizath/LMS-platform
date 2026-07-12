@@ -36,6 +36,13 @@ export default async function ModuleDetailPage({
 
   if (!module_) notFound();
 
+  const [assignmentCount, enrollmentCount, registrationModuleCount] = await Promise.all([
+    prisma.lecturerModuleAssignment.count({ where: { moduleId } }),
+    prisma.enrollment.count({ where: { moduleId } }),
+    prisma.registrationModule.count({ where: { moduleId } }),
+  ]);
+  const deleteWarning = `This permanently deletes ${assignmentCount} lecturer assignment(s), ${enrollmentCount} enrollment(s), and ${registrationModuleCount} registration link(s) for this module, along with its weekly content. This cannot be undone.`;
+
   const options = {
     programs,
     semesters: semesters.map((s) => ({ id: s.id, name: s.name, academicYearName: s.academicYear.name })),
@@ -64,7 +71,7 @@ export default async function ModuleDetailPage({
           <DeleteConfirmButton
             action={deleteModule.bind(null, module_.id)}
             title={`Delete ${module_.title}?`}
-            description="This can't be undone. Modules with lecturer assignments, enrollments, or registrations can't be deleted — deactivate instead."
+            description={deleteWarning}
           />
         </div>
       </div>

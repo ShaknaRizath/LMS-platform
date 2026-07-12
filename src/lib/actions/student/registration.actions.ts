@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { assertOwnRegistration } from "@/lib/auth/ownership";
-import { registrationSchema, resubmitRegistrationSchema } from "@/lib/validation/registration.schema";
+import { registrationSchema } from "@/lib/validation/registration.schema";
 import type { ActionState } from "@/lib/actions/action-state";
 
 export async function createRegistration(
@@ -14,16 +14,28 @@ export async function createRegistration(
   formData: FormData
 ): Promise<ActionState> {
   const student = await requireRole(["STUDENT"]);
+  if (!student.programId) {
+    return { error: "No program is assigned to your account." };
+  }
 
-  const parsed = registrationSchema.safeParse({
-    semesterId: formData.get("semesterId"),
-    moduleIds: formData.getAll("moduleIds"),
-  });
+  const parsed = registrationSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  const semester = await prisma.semester.findUnique({ where: { id: parsed.data.semesterId } });
+  const activeAcademicYear = await prisma.academicYear.findFirst({ where: { isActive: true } });
+  if (!activeAcademicYear) {
+    return { error: "No active academic year is set up yet." };
+  }
+
+  const semester = await prisma.semester.findUnique({
+    where: {
+      academicYearId_semesterNumber: {
+        academicYearId: activeAcademicYear.id,
+        semesterNumber: parsed.data.semesterNumber,
+      },
+    },
+  });
   if (!semester || semester.status !== "ACTIVE") {
     return { error: "Registration is not currently open for this semester." };
   }
@@ -45,20 +57,21 @@ export async function createRegistration(
 
   const modules = await prisma.module.findMany({
     where: {
-      id: { in: parsed.data.moduleIds },
+      programId: student.programId,
       semesterId: semester.id,
-      programId: student.programId ?? undefined,
+      yearLevel: parsed.data.yearLevel,
       isActive: true,
     },
   });
-  if (modules.length !== parsed.data.moduleIds.length) {
-    return { error: "One or more selected modules are not available for you in this semester." };
+  if (modules.length === 0) {
+    return { error: "No modules are available yet for this year and semester." };
   }
 
   const registration = await prisma.semesterRegistration.create({
     data: {
       studentId: student.id,
       semesterId: semester.id,
+      yearLevel: parsed.data.yearLevel,
       status: "PAYMENT_PENDING",
       submittedAt: new Date(),
       registrationModules: { createMany: { data: modules.map((m) => ({ moduleId: m.id })) } },
@@ -72,7 +85,7 @@ export async function createRegistration(
 export async function resubmitRegistration(
   registrationId: string,
   _prev: ActionState,
-  formData: FormData
+  _formData: FormData
 ): Promise<ActionState> {
   const student = await requireRole(["STUDENT"]);
   await assertOwnRegistration(registrationId, student.id);
@@ -84,21 +97,19 @@ export async function resubmitRegistration(
     return { error: "Only rejected registrations can be resubmitted." };
   }
 
-  const parsed = resubmitRegistrationSchema.safeParse({ moduleIds: formData.getAll("moduleIds") });
-  if (!parsed.success) {
-    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
-  }
-
+  // Modules are re-derived the same way as at creation time — a rejected registration's year
+  // level and semester don't change on resubmit, only whichever modules are currently active
+  // for that combination (in case the admin added/removed modules since the rejection).
   const modules = await prisma.module.findMany({
     where: {
-      id: { in: parsed.data.moduleIds },
-      semesterId: registration.semesterId,
       programId: student.programId ?? undefined,
+      semesterId: registration.semesterId,
+      yearLevel: registration.yearLevel,
       isActive: true,
     },
   });
-  if (modules.length !== parsed.data.moduleIds.length) {
-    return { error: "One or more selected modules are not available for you in this semester." };
+  if (modules.length === 0) {
+    return { error: "No modules are currently available for this year and semester." };
   }
 
   await prisma.$transaction([

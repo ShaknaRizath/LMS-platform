@@ -41,6 +41,27 @@ export default async function AcademicYearDetailPage({
   const setActiveAction = setActiveAcademicYear.bind(null, academicYear.id);
   const createSemesterAction = createSemester.bind(null, academicYear.id);
 
+  const [moduleCount, assignmentCount, enrollmentCount, registrationCount] = await Promise.all([
+    prisma.module.count({ where: { academicYearId } }),
+    prisma.lecturerModuleAssignment.count({ where: { module: { academicYearId } } }),
+    prisma.enrollment.count({ where: { module: { academicYearId } } }),
+    prisma.semesterRegistration.count({ where: { semester: { academicYearId } } }),
+  ]);
+  const deleteWarning = `This permanently deletes ${academicYear.semesters.length} semester(s), ${moduleCount} module(s), ${assignmentCount} lecturer assignment(s), ${enrollmentCount} enrollment(s), and ${registrationCount} registration(s) with their payment records. This cannot be undone.`;
+
+  const [moduleCountsBySemester, registrationCountsBySemester] = await Promise.all([
+    prisma.module.groupBy({ by: ["semesterId"], where: { academicYearId }, _count: { _all: true } }),
+    prisma.semesterRegistration.groupBy({
+      by: ["semesterId"],
+      where: { semester: { academicYearId } },
+      _count: { _all: true },
+    }),
+  ]);
+  const moduleCountMap = new Map(moduleCountsBySemester.map((m) => [m.semesterId, m._count._all]));
+  const registrationCountMap = new Map(
+    registrationCountsBySemester.map((r) => [r.semesterId, r._count._all])
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -62,7 +83,7 @@ export default async function AcademicYearDetailPage({
           <DeleteConfirmButton
             action={deleteAcademicYear.bind(null, academicYear.id)}
             title={`Delete ${academicYear.name}?`}
-            description="This can't be undone. Academic years with semesters or modules can't be deleted."
+            description={deleteWarning}
           />
         </div>
       </div>
@@ -108,7 +129,6 @@ export default async function AcademicYearDetailPage({
                   <TableHead>Name</TableHead>
                   <TableHead>Dates</TableHead>
                   <TableHead>Registration window</TableHead>
-                  <TableHead>Fee</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
@@ -124,9 +144,6 @@ export default async function AcademicYearDetailPage({
                       {semester.registrationOpensAt && semester.registrationClosesAt
                         ? `${semester.registrationOpensAt.toLocaleDateString()} – ${semester.registrationClosesAt.toLocaleDateString()}`
                         : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {semester.feeAmount ? `LKR ${semester.feeAmount.toString()}` : "—"}
                     </TableCell>
                     <TableCell>
                       <SemesterStatusSelect
@@ -145,9 +162,9 @@ export default async function AcademicYearDetailPage({
                           endDate: semester.endDate,
                           registrationOpensAt: semester.registrationOpensAt,
                           registrationClosesAt: semester.registrationClosesAt,
-                          feeAmount: semester.feeAmount?.toString() ?? null,
                         }}
                         academicYearId={academicYear.id}
+                        deleteWarning={`This permanently deletes ${moduleCountMap.get(semester.id) ?? 0} module(s) and ${registrationCountMap.get(semester.id) ?? 0} registration(s) with their payment records in this semester. This cannot be undone.`}
                       />
                     </TableCell>
                   </TableRow>

@@ -1,9 +1,6 @@
-import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RegisterForm } from "@/components/student/register-form";
+import { RegisterSelector } from "@/components/student/register-selector";
 import {
   Empty,
   EmptyHeader,
@@ -32,16 +29,18 @@ export default async function RegisterPage() {
     );
   }
 
-  const openSemester = await prisma.semester.findFirst({
-    where: {
-      status: "ACTIVE",
-      modules: { some: { programId: student.programId, isActive: true } },
-    },
-    include: { academicYear: true },
-    orderBy: { startDate: "desc" },
-  });
+  const program = await prisma.program.findUniqueOrThrow({ where: { id: student.programId } });
 
-  if (!openSemester) {
+  const activeAcademicYear = await prisma.academicYear.findFirst({ where: { isActive: true } });
+  const activeSemesters = activeAcademicYear
+    ? await prisma.semester.findMany({
+        where: { academicYearId: activeAcademicYear.id, status: "ACTIVE" },
+        include: { academicYear: true },
+        orderBy: { semesterNumber: "asc" },
+      })
+    : [];
+
+  if (activeSemesters.length === 0) {
     return (
       <Empty>
         <EmptyHeader>
@@ -55,52 +54,55 @@ export default async function RegisterPage() {
     );
   }
 
-  const existingRegistration = await prisma.semesterRegistration.findUnique({
-    where: { studentId_semesterId: { studentId: student.id, semesterId: openSemester.id } },
-  });
+  const semesterIds = activeSemesters.map((s) => s.id);
 
-  if (existingRegistration) {
-    return (
-      <Card className="max-w-lg">
-        <CardHeader>
-          <CardTitle>You&apos;re already registered</CardTitle>
-          <CardDescription>
-            You have a registration for {openSemester.academicYear.name} — {openSemester.name}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button nativeButton={false} render={<Link href={`/student/registrations/${existingRegistration.id}`} />}>
-            View registration
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const modules = await prisma.module.findMany({
-    where: { programId: student.programId, semesterId: openSemester.id, isActive: true },
-    orderBy: { code: "asc" },
-  });
+  const [modules, existingRegistrations, fees] = await Promise.all([
+    prisma.module.findMany({
+      where: { programId: student.programId, semesterId: { in: semesterIds }, isActive: true },
+      orderBy: { code: "asc" },
+    }),
+    prisma.semesterRegistration.findMany({
+      where: { studentId: student.id, semesterId: { in: semesterIds } },
+      select: { id: true, semesterId: true, status: true },
+    }),
+    prisma.programCurriculumFee.findMany({ where: { programId: student.programId } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Semester registration</h1>
         <p className="text-muted-foreground">
-          {openSemester.academicYear.name} — {openSemester.name}
-          {openSemester.feeAmount ? ` · Fee: LKR ${openSemester.feeAmount.toString()}` : ""}
+          {program.name} — select the year and semester you&apos;re enrolling for.
         </p>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Select your modules</CardTitle>
-          <CardDescription>You&apos;ll upload your payment receipt in the next step.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RegisterForm semesterId={openSemester.id} modules={modules} />
-        </CardContent>
-      </Card>
+      <RegisterSelector
+        durationYears={program.durationYears}
+        semesters={activeSemesters.map((s) => ({
+          id: s.id,
+          semesterNumber: s.semesterNumber,
+          label: `${s.academicYear.name} — ${s.name}`,
+        }))}
+        modules={modules.map((m) => ({
+          id: m.id,
+          code: m.code,
+          title: m.title,
+          credits: m.credits,
+          yearLevel: m.yearLevel,
+          semesterId: m.semesterId,
+        }))}
+        existingRegistrations={existingRegistrations.map((r) => ({
+          semesterId: r.semesterId,
+          registrationId: r.id,
+          status: r.status,
+        }))}
+        fees={fees.map((f) => ({
+          yearLevel: f.yearLevel,
+          semesterNumber: f.semesterNumber,
+          amount: f.amount.toString(),
+        }))}
+      />
     </div>
   );
 }

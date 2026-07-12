@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import type { ActionState } from "@/lib/actions/action-state";
 import { ROLE_OPTIONS } from "@/lib/validation/user.schema";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
+
+// Excludes visually-ambiguous characters (0/O, 1/l/I) so a generated password can be read
+// aloud or copied to a lecturer/student without confusion.
+function generatePassword(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
 
 const ROLE_LABELS: Record<(typeof ROLE_OPTIONS)[number], string> = {
   SUPER_ADMIN: "Super Admin",
@@ -44,6 +54,8 @@ export function UserForm({
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction}>
@@ -62,11 +74,55 @@ export function UserForm({
         </Field>
 
         {mode === "create" ? (
-          <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
-            <Input id="email" name="email" type="email" placeholder="name@cims.edu" required />
-            <FieldError errors={state?.fieldErrors?.email?.map((message) => ({ message }))} />
-          </Field>
+          <>
+            <Field>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <Input id="email" name="email" type="email" placeholder="name@cims.edu" required />
+              <FieldError errors={state?.fieldErrors?.email?.map((message) => ({ message }))} />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="flex gap-2">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Leave blank to email a set-password link"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setPassword(generatePassword());
+                    setShowPassword(true);
+                  }}
+                >
+                  <RefreshCw className="size-4" />
+                  Generate
+                </Button>
+              </div>
+              <FieldDescription>
+                Leave blank to email the user a link to set their own password. Set one here to
+                give the account to them directly (useful when email delivery isn&apos;t configured) —
+                copy it before submitting, it won&apos;t be shown again.
+              </FieldDescription>
+              <FieldError errors={state?.fieldErrors?.password?.map((message) => ({ message }))} />
+            </Field>
+          </>
         ) : (
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>

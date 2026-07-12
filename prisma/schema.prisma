@@ -51,6 +51,11 @@ enum PaymentVerificationStatus {
   REJECTED
 }
 
+enum PaymentMethod {
+  BANK_TRANSFER
+  GATEWAY
+}
+
 enum SemesterStatus {
   UPCOMING
   ACTIVE
@@ -91,8 +96,9 @@ model User {
   isActive     Boolean @default(true)
 
   // Only meaningful for STUDENT role: home program for catalog default / dashboard.
+  // SetNull rather than Cascade: deleting a Program should not delete student accounts.
   programId String?
-  program   Program? @relation(fields: [programId], references: [id])
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,8 +142,9 @@ model Program {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  modules  Module[]
-  students User[]
+  modules        Module[]
+  students       User[]
+  curriculumFees ProgramCurriculumFee[]
 }
 
 model AcademicYear {
@@ -153,17 +160,36 @@ model AcademicYear {
   modules   Module[]
 }
 
+// A program's fee for a given curriculum position (e.g. "Year 1, Semester 1"). Keyed by
+// yearLevel + semesterNumber rather than a specific Semester row, because the fee for
+// "Year 1 Semester 1" is a property of the program's curriculum, not of any one academic
+// year's calendar instance — it doesn't need re-entering every time a new academic year's
+// Semester 1 is created, and it varies both across programs and across years of the same program.
+model ProgramCurriculumFee {
+  id             String   @id @default(cuid())
+  programId      String
+  program        Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  yearLevel      Int
+  semesterNumber Int
+  amount         Decimal  @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([programId, yearLevel, semesterNumber])
+}
+
 model Semester {
   id                   String         @id @default(cuid())
   academicYearId       String
-  academicYear         AcademicYear   @relation(fields: [academicYearId], references: [id])
+  academicYear         AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   name                 String // "Semester 1"
   semesterNumber       Int // 1, 2 (or 3 for trimester systems)
   startDate            DateTime
   endDate              DateTime
   registrationOpensAt  DateTime?
   registrationClosesAt DateTime?
-  feeAmount            Decimal?       @db.Decimal(10, 2)
+  // Fee lives on ProgramCurriculumFee (programId + yearLevel + semesterNumber), not here —
+  // see that model's comment for why.
   status               SemesterStatus @default(UPCOMING)
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
@@ -186,11 +212,11 @@ model Module {
   isActive    Boolean @default(true)
 
   programId      String
-  program        Program      @relation(fields: [programId], references: [id])
+  program        Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
   academicYearId String
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   semesterId     String
-  semester       Semester     @relation(fields: [semesterId], references: [id])
+  semester       Semester     @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -211,9 +237,9 @@ model LecturerModuleAssignment {
   lecturerId   String
   lecturer     User     @relation("LecturerAssignments", fields: [lecturerId], references: [id])
   moduleId     String
-  module       Module   @relation(fields: [moduleId], references: [id])
+  module       Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   assignedById String?
-  assignedBy   User?    @relation("AssignedBy", fields: [assignedById], references: [id])
+  assignedBy   User?    @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
   assignedAt   DateTime @default(now())
 
   @@unique([lecturerId, moduleId])
@@ -320,12 +346,16 @@ model SemesterRegistration {
   studentId       String
   student         User               @relation("StudentRegistrations", fields: [studentId], references: [id])
   semesterId      String
-  semester        Semester           @relation(fields: [semesterId], references: [id])
+  semester        Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  // Curriculum year this registration is for (e.g. 1st year of the program) — together with
+  // the student's program and the semester's number, this determines which modules are
+  // auto-selected and which ProgramCurriculumFee applies.
+  yearLevel       Int
   status          RegistrationStatus @default(PAYMENT_PENDING)
   submittedAt     DateTime?
   decidedAt       DateTime?
   decidedById     String?
-  decidedBy       User?              @relation("DecidedBy", fields: [decidedById], references: [id])
+  decidedBy       User?              @relation("DecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
   rejectionReason String?
 
   createdAt DateTime @default(now())
@@ -343,7 +373,7 @@ model RegistrationModule {
   registrationId String
   registration   SemesterRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   moduleId       String
-  module         Module               @relation(fields: [moduleId], references: [id])
+  module         Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   createdAt      DateTime             @default(now())
 
   @@unique([registrationId, moduleId])
@@ -352,15 +382,20 @@ model RegistrationModule {
 model PaymentRecord {
   id                 String                    @id @default(cuid())
   registrationId     String
-  registration       SemesterRegistration      @relation(fields: [registrationId], references: [id])
+  registration       SemesterRegistration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   amount             Decimal                   @db.Decimal(10, 2)
   currency           String                    @default("LKR")
-  receiptUrl         String
+  method             PaymentMethod             @default(BANK_TRANSFER)
+  // Bank transfer only: uploaded receipt. Null for gateway payments (the gateway record is the proof).
+  receiptUrl         String?
   receiptFileName    String?
+  // Gateway only: which provider processed it and its transaction reference.
+  gatewayProvider    String?
+  gatewayReference   String?
   uploadedAt         DateTime                  @default(now())
   verificationStatus PaymentVerificationStatus @default(PENDING)
   verifiedById       String?
-  verifiedBy         User?                     @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedBy         User?                     @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
   verifiedAt         DateTime?
   verificationNotes  String?
 
@@ -375,7 +410,7 @@ model Enrollment {
   studentId      String
   student        User             @relation(fields: [studentId], references: [id])
   moduleId       String
-  module         Module           @relation(fields: [moduleId], references: [id])
+  module         Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   registrationId String? // audit link back to the approving registration
   status         EnrollmentStatus @default(ACTIVE)
   enrolledAt     DateTime         @default(now())
@@ -395,7 +430,7 @@ model CalendarEvent {
   isAllDay       Boolean           @default(true)
   academicYearId String?
   semesterId     String?
-  semester       Semester?         @relation(fields: [semesterId], references: [id])
+  semester       Semester?         @relation(fields: [semesterId], references: [id], onDelete: SetNull)
   createdById    String
   createdBy      User              @relation(fields: [createdById], references: [id])
 

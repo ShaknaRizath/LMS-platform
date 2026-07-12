@@ -44,7 +44,7 @@ export default async function FinanceRegistrationDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>
-            {registration.semester.academicYear.name} — {registration.semester.name}
+            Year {registration.yearLevel} — {registration.semester.academicYear.name} — {registration.semester.name}
           </CardTitle>
           <CardDescription>
             Submitted {registration.submittedAt?.toLocaleDateString() ?? "—"}
@@ -85,7 +85,8 @@ export default async function FinanceRegistrationDetailPage({
                 <div>
                   <p className="text-sm font-medium">LKR {payment.amount.toString()}</p>
                   <p className="text-sm text-muted-foreground">
-                    Uploaded {payment.uploadedAt.toLocaleString()}
+                    {payment.method === "GATEWAY" ? "Paid via LMS Gateway" : "Uploaded"}{" "}
+                    {payment.uploadedAt.toLocaleString()}
                   </p>
                 </div>
                 <Badge
@@ -100,14 +101,20 @@ export default async function FinanceRegistrationDetailPage({
                   {payment.verificationStatus}
                 </Badge>
               </div>
-              <a
-                href={payment.receiptUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline"
-              >
-                View receipt{payment.receiptFileName ? ` (${payment.receiptFileName})` : ""}
-              </a>
+              {payment.receiptUrl ? (
+                <a
+                  href={payment.receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  View receipt{payment.receiptFileName ? ` (${payment.receiptFileName})` : ""}
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Gateway reference: {payment.gatewayReference ?? "—"}
+                </p>
+              )}
               {payment.verificationStatus === "PENDING" ? (
                 <PaymentVerificationForm paymentRecordId={payment.id} registrationId={registration.id} />
               ) : (

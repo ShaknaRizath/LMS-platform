@@ -98,17 +98,9 @@ export async function deleteModule(
 ): Promise<ActionState> {
   await requireRole(["SUPER_ADMIN", "ADMIN"]);
 
-  const [assignmentCount, enrollmentCount, registrationModuleCount] = await Promise.all([
-    prisma.lecturerModuleAssignment.count({ where: { moduleId } }),
-    prisma.enrollment.count({ where: { moduleId } }),
-    prisma.registrationModule.count({ where: { moduleId } }),
-  ]);
-  if (assignmentCount > 0 || enrollmentCount > 0 || registrationModuleCount > 0) {
-    return {
-      error: `Can't delete — this module has ${assignmentCount} lecturer assignment(s), ${enrollmentCount} enrollment(s), and ${registrationModuleCount} registration(s) linked to it. Deactivate it instead.`,
-    };
-  }
-
+  // Cascades: lecturer assignments, enrollments, registration links, weeks/content/
+  // submissions, and announcements for this module are deleted with it (see
+  // schema.prisma onDelete: Cascade). Lecturer and student accounts are unaffected.
   await prisma.module.delete({ where: { id: moduleId } });
   revalidatePath("/admin/modules");
   redirect("/admin/modules");
