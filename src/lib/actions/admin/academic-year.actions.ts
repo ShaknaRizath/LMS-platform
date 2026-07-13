@@ -14,7 +14,7 @@ export async function createAcademicYear(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = academicYearSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -41,7 +41,7 @@ export async function updateAcademicYear(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = academicYearSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -67,7 +67,7 @@ export async function deleteAcademicYear(
   _prev: ActionState,
   _formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   // Cascades: semesters, modules, lecturer assignments, enrollments, registrations,
   // payment records, announcements, weeks/content/submissions all belong to this year
@@ -84,7 +84,7 @@ export async function updateSemester(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = semesterSchema.safeParse({
     ...Object.fromEntries(formData),
@@ -113,7 +113,7 @@ export async function deleteSemester(
   _prev: ActionState,
   _formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   // Cascades: modules, lecturer assignments, enrollments, registrations, and payment
   // records for this semester are deleted with it (see schema.prisma onDelete: Cascade).
@@ -123,7 +123,7 @@ export async function deleteSemester(
 }
 
 export async function setActiveAcademicYear(academicYearId: string) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   await prisma.$transaction([
     prisma.academicYear.updateMany({ data: { isActive: false } }),
@@ -138,7 +138,7 @@ export async function createSemester(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = semesterSchema.safeParse({
     ...Object.fromEntries(formData),
@@ -166,7 +166,7 @@ export async function setSemesterStatus(
   academicYearId: string,
   status: SemesterStatus
 ) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
   await prisma.semester.update({ where: { id: semesterId }, data: { status } });
   revalidatePath(`/admin/academic-years/${academicYearId}`);
 }

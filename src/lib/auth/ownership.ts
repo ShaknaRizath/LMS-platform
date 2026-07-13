@@ -21,3 +21,13 @@ export async function assertOwnRegistration(registrationId: string, studentId: s
     throw new Error("This registration does not belong to you.");
   }
 }
+
+/** Throws unless the given student has an active enrollment in the given module. */
+export async function assertStudentEnrolledInModule(moduleId: string, studentId: string) {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { studentId_moduleId: { studentId, moduleId } },
+  });
+  if (!enrollment || enrollment.status !== "ACTIVE") {
+    throw new Error("You are not actively enrolled in this module.");
+  }
+}

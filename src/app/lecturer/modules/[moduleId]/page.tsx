@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Users, Megaphone } from "lucide-react";
+import { Users, Megaphone, ClipboardList, MessagesSquare, ListChecks } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,30 @@ export default async function LecturerModuleDetailPage({
           <Button
             variant="outline"
             nativeButton={false}
+            render={<Link href={`/lecturer/modules/${module_.id}/assignments`} />}
+          >
+            <ClipboardList />
+            Assignments
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/lecturer/modules/${module_.id}/quizzes`} />}
+          >
+            <ListChecks />
+            Quizzes
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/lecturer/modules/${module_.id}/discussions`} />}
+          >
+            <MessagesSquare />
+            Discussions
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
             render={<Link href={`/lecturer/modules/${module_.id}/announcements`} />}
           >
             <Megaphone />
@@ -63,6 +87,7 @@ export default async function LecturerModuleDetailPage({
       <div className="flex flex-col gap-4">
         {module_.weeks.length > 0 && (
           <Accordion
+            key={module_.weeks.map((week) => week.id).join(",")}
             defaultValue={module_.weeks.map((week) => week.id)}
             className="flex flex-col gap-3"
           >

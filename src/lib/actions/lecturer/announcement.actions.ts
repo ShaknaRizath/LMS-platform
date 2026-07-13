@@ -30,6 +30,30 @@ export async function createModuleAnnouncement(
   return undefined;
 }
 
+export async function updateModuleAnnouncement(
+  announcementId: string,
+  moduleId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const lecturer = await requireRole(["LECTURER"]);
+  await assertLecturerOwnsModule(moduleId, lecturer.id);
+
+  const parsed = announcementSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  await prisma.announcement.update({
+    where: { id: announcementId },
+    data: parsed.data,
+  });
+
+  revalidatePath(`/lecturer/modules/${moduleId}/announcements`);
+  revalidatePath(`/lecturer/announcements`);
+  return undefined;
+}
+
 export async function deleteModuleAnnouncement(announcementId: string, moduleId: string) {
   const lecturer = await requireRole(["LECTURER"]);
   await assertLecturerOwnsModule(moduleId, lecturer.id);

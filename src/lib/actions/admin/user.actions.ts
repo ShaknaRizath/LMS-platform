@@ -17,7 +17,7 @@ export async function createUser(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = createUserSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -71,7 +71,7 @@ export async function updateUser(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = updateUserSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -86,7 +86,7 @@ export async function updateUser(
 }
 
 export async function setUserActive(userId: string, isActive: boolean) {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   if (userId === admin.id && !isActive) {
     throw new Error("You cannot deactivate your own account.");
@@ -103,7 +103,7 @@ export async function deleteUser(
   _prev: ActionState,
   _formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   if (userId === admin.id) {
     return { error: "You cannot delete your own account." };

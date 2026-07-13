@@ -13,10 +13,15 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
-  ADMIN
+  CAMPUS_ADMIN
+  ACADEMIC_DIRECTOR
+  PROGRAM_COORDINATOR
   LECTURER
   FINANCE
-  REGISTRAR
+  MARKETING_OFFICER
+  EXAMINATION_UNIT
+  LIBRARY_OFFICER
+  HR_OFFICER
   STUDENT
 }
 
@@ -25,6 +30,7 @@ enum ContentType {
   LINK
   VIDEO
   ZOOM
+  GOOGLE_MEET
   RICH_TEXT
 }
 
@@ -83,6 +89,28 @@ enum NotificationStatus {
   STUBBED
 }
 
+enum QuizKind {
+  QUIZ
+  EXAM
+}
+
+// QUIZ: DRAFT -> PUBLISHED -> CLOSED (lecturer-controlled, like ContentStatus).
+// EXAM: DRAFT -> SCHEDULED -> CLOSED (SCHEDULED only reachable via the Examination
+// Unit's scheduleExam action; submittedForSchedulingAt marks a DRAFT exam as ready
+// for their review queue).
+enum QuizStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  CLOSED
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  ESSAY
+}
+
 // ---------- CORE ----------
 
 model User {
@@ -103,17 +131,23 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lecturerAssignments   LecturerModuleAssignment[] @relation("LecturerAssignments")
-  assignmentsGranted    LecturerModuleAssignment[] @relation("AssignedBy")
-  registrations         SemesterRegistration[]     @relation("StudentRegistrations")
-  decisionsGiven        SemesterRegistration[]      @relation("DecidedBy")
-  enrollments           Enrollment[]
-  announcementsAuthored Announcement[]
-  paymentsVerified      PaymentRecord[]             @relation("PaymentVerifiedBy")
-  passwordResetTokens   PasswordResetToken[]
-  calendarEventsCreated CalendarEvent[]
-  contentItemsCreated   ContentItem[]
-  submissions           Submission[]
+  lecturerAssignments       LecturerModuleAssignment[] @relation("LecturerAssignments")
+  assignmentsGranted        LecturerModuleAssignment[] @relation("AssignedBy")
+  registrations             SemesterRegistration[]     @relation("StudentRegistrations")
+  decisionsGiven            SemesterRegistration[]     @relation("DecidedBy")
+  enrollments               Enrollment[]
+  announcementsAuthored     Announcement[]
+  paymentsVerified          PaymentRecord[]            @relation("PaymentVerifiedBy")
+  passwordResetTokens       PasswordResetToken[]
+  calendarEventsCreated     CalendarEvent[]
+  contentItemsCreated       ContentItem[]
+  submissions               Submission[]               @relation("StudentSubmissions")
+  submissionsGraded         Submission[]               @relation("SubmissionGradedBy")
+  discussionThreadsAuthored DiscussionThread[]
+  discussionPostsAuthored   DiscussionPost[]
+  quizzesCreated            Quiz[]                     @relation("QuizCreatedBy")
+  quizzesScheduled          Quiz[]                     @relation("QuizScheduledBy")
+  quizAttempts              QuizAttempt[]              @relation("QuizAttemptStudent")
 
   @@index([role])
 }
@@ -226,6 +260,8 @@ model Module {
   announcements       Announcement[]
   enrollments         Enrollment[]
   registrationModules RegistrationModule[]
+  discussionThreads   DiscussionThread[]
+  quizzes             Quiz[]
 
   @@unique([code, academicYearId, semesterId])
   @@index([programId])
@@ -284,9 +320,10 @@ model ContentItem {
   zoomJoinUrl   String?
   zoomMeetingId String?
   zoomPasscode  String?
+  meetJoinUrl   String?
   richTextHtml  String? @db.Text
 
-  // assignment placeholder fields (structure only, no grading flow in Phase 1)
+  // assignment fields — dueDate/isAssignment orthogonal to type; grading lives on Submission
   isAssignment Boolean   @default(false)
   dueDate      DateTime?
 
@@ -301,20 +338,128 @@ model ContentItem {
 }
 
 model Submission {
-  // Schema stub only — no server actions/UI in Phase 1 per scope.
   id            String      @id @default(cuid())
   contentItemId String
   contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
   studentId     String
-  student       User        @relation(fields: [studentId], references: [id])
+  student       User        @relation("StudentSubmissions", fields: [studentId], references: [id])
   textResponse  String?     @db.Text
   fileUrl       String?
   submittedAt   DateTime    @default(now())
   grade         Decimal?    @db.Decimal(5, 2)
   feedback      String?
   gradedAt      DateTime?
+  gradedById    String?
+  gradedBy      User?       @relation("SubmissionGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+  updatedAt     DateTime    @updatedAt
 
   @@unique([contentItemId, studentId])
+}
+
+// ---------- ASSESSMENT (QUIZZES & EXAMS) ----------
+// QUIZ: authored and published directly by the owning lecturer, like an assignment.
+// EXAM: lecturer drafts the questions then submits for scheduling; an Examination Unit
+// staff member sets the availability window and publishes it (scheduleExam). Both kinds
+// share one model since the question/attempt/grading machinery is identical — only the
+// publish path differs (see QuizStatus comment above).
+
+model Quiz {
+  id          String     @id @default(cuid())
+  moduleId    String
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  kind        QuizKind   @default(QUIZ)
+  title       String
+  description String?
+  timeLimitMinutes Int?
+  maxAttempts      Int        @default(1)
+  status           QuizStatus @default(DRAFT)
+
+  // EXAM only: set by the lecturer to signal "ready for Examination Unit review",
+  // without needing a dedicated enum value.
+  submittedForSchedulingAt DateTime?
+
+  // EXAM: set by Examination Unit via scheduleExam. QUIZ: left null (lecturer-published
+  // quizzes are available as soon as status = PUBLISHED, no window needed).
+  availableFrom  DateTime?
+  availableUntil DateTime?
+  scheduledById  String?
+  scheduledBy    User?      @relation("QuizScheduledBy", fields: [scheduledById], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User     @relation("QuizCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([moduleId, status])
+}
+
+model QuizQuestion {
+  id         String       @id @default(cuid())
+  quizId     String
+  quiz       Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type       QuestionType
+  prompt     String       @db.Text
+  points     Int          @default(1)
+  orderIndex Int
+
+  options QuizOption[]
+  answers QuizAnswer[]
+
+  @@index([quizId])
+}
+
+model QuizOption {
+  id         String       @id @default(cuid())
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean      @default(false)
+  orderIndex Int
+
+  answers QuizAnswer[]
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id            String    @id @default(cuid())
+  quizId        String
+  quiz          Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User      @relation("QuizAttemptStudent", fields: [studentId], references: [id])
+  attemptNumber Int
+  startedAt     DateTime  @default(now())
+  submittedAt   DateTime?
+  // Populated together at submit time — auto-graded, no separate "gradedAt" step.
+  pointsEarned  Int?
+  totalPoints   Int?
+
+  answers QuizAnswer[]
+
+  @@unique([quizId, studentId, attemptNumber])
+  @@index([quizId, studentId])
+}
+
+model QuizAnswer {
+  id               String       @id @default(cuid())
+  attemptId        String
+  attempt          QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  // MCQ / TRUE_FALSE
+  selectedOptionId String?
+  selectedOption   QuizOption?  @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  isCorrect        Boolean?
+  // ESSAY — free-text response, manually graded by the lecturer afterwards
+  textResponse     String?      @db.Text
+  // Points actually awarded for this answer. Set immediately at submit time for
+  // auto-graded MCQ/TRUE_FALSE; left null for ESSAY until a lecturer grades it.
+  pointsAwarded    Int?
+
+  @@unique([attemptId, questionId])
 }
 
 // ---------- ANNOUNCEMENTS ----------
@@ -337,6 +482,44 @@ model Announcement {
   updatedAt DateTime @updatedAt
 
   @@index([scope, moduleId])
+}
+
+// ---------- DISCUSSION BOARDS ----------
+// Flat thread + reply model (not a recursive comment tree) — matches "course-scoped
+// Q&A space" scope. Lecturer and student have symmetric create/reply permissions;
+// only the lecturer who owns the module can pin/lock/delete (see discussion.actions.ts).
+
+model DiscussionThread {
+  id       String  @id @default(cuid())
+  moduleId String
+  module   Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title    String
+  body     String  @db.Text
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id])
+  isPinned Boolean @default(false)
+  isLocked Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts DiscussionPost[]
+
+  @@index([moduleId])
+}
+
+model DiscussionPost {
+  id       String           @id @default(cuid())
+  threadId String
+  thread   DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User             @relation(fields: [authorId], references: [id])
+  body     String           @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([threadId])
 }
 
 // ---------- REGISTRATION & PAYMENT ----------
@@ -362,7 +545,7 @@ model SemesterRegistration {
   updatedAt DateTime @updatedAt
 
   registrationModules RegistrationModule[]
-  paymentRecords       PaymentRecord[]
+  paymentRecords      PaymentRecord[]
 
   @@unique([studentId, semesterId])
   @@index([status])

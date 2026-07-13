@@ -23,6 +23,7 @@ const TYPE_LABELS: Record<ContentType, string> = {
   LINK: "External link",
   VIDEO: "Video link",
   ZOOM: "Zoom meeting",
+  GOOGLE_MEET: "Google Meet",
 };
 
 export function ContentItemForm({
@@ -41,6 +42,7 @@ export function ContentItemForm({
     zoomJoinUrl?: string | null;
     zoomMeetingId?: string | null;
     zoomPasscode?: string | null;
+    meetJoinUrl?: string | null;
     richTextHtml?: string | null;
     fileUrl?: string | null;
     fileName?: string | null;
@@ -170,6 +172,20 @@ export function ContentItemForm({
               </Field>
             </Field>
           </>
+        )}
+
+        {type === "GOOGLE_MEET" && (
+          <Field>
+            <FieldLabel htmlFor="meetJoinUrl">Google Meet join URL</FieldLabel>
+            <Input
+              id="meetJoinUrl"
+              name="meetJoinUrl"
+              type="url"
+              placeholder="https://meet.google.com/..."
+              defaultValue={defaultValues?.meetJoinUrl ?? ""}
+            />
+            <FieldError errors={state?.fieldErrors?.meetJoinUrl?.map((message) => ({ message }))} />
+          </Field>
         )}
 
         {type === "FILE" && (

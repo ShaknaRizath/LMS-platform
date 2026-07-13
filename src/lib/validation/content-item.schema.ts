@@ -40,6 +40,11 @@ export const contentItemSchema = z.discriminatedUnion("type", [
     zoomPasscode: z.string().optional(),
   }),
   z.object({
+    type: z.literal("GOOGLE_MEET"),
+    ...baseFields,
+    meetJoinUrl: z.url({ error: "Enter a valid Google Meet join URL, starting with https://" }),
+  }),
+  z.object({
     type: z.literal("RICH_TEXT"),
     ...baseFields,
     richTextHtml: z.string().min(1, { error: "Enter some content." }),

@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { verifyPassword } from "@/lib/auth/password";
+import authConfig from "@/auth.config";
 
 const credentialsSchema = z.object({
   email: z.email(),
@@ -46,10 +47,11 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
   providers,
   callbacks: {
+    ...authConfig.callbacks,
     signIn: async ({ user, account }) => {
       if (account?.provider !== "google") return true;
       if (!user.email) return false;
@@ -86,11 +88,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return token;
-    },
-    session: ({ session, token }) => {
-      session.user.id = token.id;
-      session.user.role = token.role;
-      return session;
     },
   },
 });

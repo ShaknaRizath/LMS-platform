@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { auth } from "@/auth";
-import { resolveAllowedFolderPrefix } from "@/lib/storage/allowed-folder";
+import { resolveAllowedFolderPrefixes } from "@/lib/storage/allowed-folder";
 import { UPLOADS_ROOT } from "@/lib/storage/local.adapter";
 
 function sanitizeFileName(name: string): string {
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid upload payload." }, { status: 400 });
   }
 
-  const allowedPrefix = resolveAllowedFolderPrefix(session.user.role, session.user.id);
-  if (!folder.startsWith(allowedPrefix)) {
+  const allowedPrefixes = resolveAllowedFolderPrefixes(session.user.role, session.user.id);
+  if (!allowedPrefixes.some((prefix) => folder.startsWith(prefix))) {
     return Response.json({ error: "Invalid upload folder." }, { status: 400 });
   }
 

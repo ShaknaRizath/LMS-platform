@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { storage } from "@/lib/storage";
-import { resolveAllowedFolderPrefix } from "@/lib/storage/allowed-folder";
+import { resolveAllowedFolderPrefixes } from "@/lib/storage/allowed-folder";
 import type { UploadResourceType } from "@/lib/storage/storage.interface";
 
 export async function POST(request: Request) {
@@ -12,9 +12,9 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { folder?: string; resourceType?: UploadResourceType };
   const { folder, resourceType } = body;
 
-  const allowedPrefix = resolveAllowedFolderPrefix(session.user.role, session.user.id);
+  const allowedPrefixes = resolveAllowedFolderPrefixes(session.user.role, session.user.id);
 
-  if (!folder || !folder.startsWith(allowedPrefix)) {
+  if (!folder || !allowedPrefixes.some((prefix) => folder.startsWith(prefix))) {
     return Response.json({ error: "Invalid upload folder." }, { status: 400 });
   }
 

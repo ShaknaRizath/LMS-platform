@@ -11,7 +11,7 @@ export async function createCalendarEvent(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = calendarEventSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -29,7 +29,7 @@ export async function createCalendarEvent(
 }
 
 export async function deleteCalendarEvent(eventId: string) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   await prisma.calendarEvent.delete({ where: { id: eventId } });
 

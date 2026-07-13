@@ -1,22 +1,37 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import authConfig from "@/auth.config";
 import type { Role } from "@/generated/prisma/enums";
+
+// Built from the Prisma-free auth.config so this bundle (which runs on every
+// request) never pulls in the generated Prisma client — see auth.config.ts.
+const { auth } = NextAuth(authConfig);
 
 const ROLE_HOME: Record<Role, string> = {
   SUPER_ADMIN: "/admin",
-  ADMIN: "/admin",
+  CAMPUS_ADMIN: "/admin",
+  ACADEMIC_DIRECTOR: "/academic",
+  PROGRAM_COORDINATOR: "/coordinator",
   LECTURER: "/lecturer",
   FINANCE: "/finance",
-  REGISTRAR: "/registrar",
+  MARKETING_OFFICER: "/marketing",
+  EXAMINATION_UNIT: "/examinations",
+  LIBRARY_OFFICER: "/library",
+  HR_OFFICER: "/hr",
   STUDENT: "/student",
 };
 
 const PATH_PREFIX_ROLES: Array<{ prefix: string; roles: Role[] }> = [
-  { prefix: "/admin", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { prefix: "/admin", roles: ["SUPER_ADMIN", "CAMPUS_ADMIN"] },
+  { prefix: "/academic", roles: ["ACADEMIC_DIRECTOR"] },
+  { prefix: "/coordinator", roles: ["PROGRAM_COORDINATOR"] },
   { prefix: "/lecturer", roles: ["LECTURER"] },
   { prefix: "/student", roles: ["STUDENT"] },
   { prefix: "/finance", roles: ["FINANCE"] },
-  { prefix: "/registrar", roles: ["REGISTRAR"] },
+  { prefix: "/marketing", roles: ["MARKETING_OFFICER"] },
+  { prefix: "/examinations", roles: ["EXAMINATION_UNIT"] },
+  { prefix: "/library", roles: ["LIBRARY_OFFICER"] },
+  { prefix: "/hr", roles: ["HR_OFFICER"] },
 ];
 
 // Optimistic, JWT-only checks — no DB access here (Proxy runs on every

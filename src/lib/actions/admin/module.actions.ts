@@ -21,7 +21,7 @@ export async function createModule(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = moduleSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -55,7 +55,7 @@ export async function updateModule(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = moduleSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -85,7 +85,7 @@ export async function updateModule(
 }
 
 export async function toggleModuleActive(moduleId: string, isActive: boolean) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
   await prisma.module.update({ where: { id: moduleId }, data: { isActive } });
   revalidatePath("/admin/modules");
   revalidatePath(`/admin/modules/${moduleId}`);
@@ -96,7 +96,7 @@ export async function deleteModule(
   _prev: ActionState,
   _formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   // Cascades: lecturer assignments, enrollments, registration links, weeks/content/
   // submissions, and announcements for this module are deleted with it (see
@@ -107,7 +107,7 @@ export async function deleteModule(
 }
 
 export async function assignLecturer(moduleId: string, lecturerId: string) {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const lecturer = await prisma.user.findUnique({ where: { id: lecturerId } });
   if (!lecturer || lecturer.role !== "LECTURER" || !lecturer.isActive) {
@@ -124,7 +124,7 @@ export async function assignLecturer(moduleId: string, lecturerId: string) {
 }
 
 export async function unassignLecturer(moduleId: string, lecturerId: string) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   await prisma.lecturerModuleAssignment.delete({
     where: { lecturerId_moduleId: { lecturerId, moduleId } },

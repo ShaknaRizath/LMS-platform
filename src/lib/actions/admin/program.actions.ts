@@ -14,7 +14,7 @@ export async function createProgram(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = programSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -41,7 +41,7 @@ export async function updateProgram(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = programSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -63,7 +63,7 @@ export async function updateProgram(
 }
 
 export async function toggleProgramActive(programId: string, isActive: boolean) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
   await prisma.program.update({ where: { id: programId }, data: { isActive } });
   revalidatePath("/admin/programs");
   revalidatePath(`/admin/programs/${programId}`);
@@ -74,7 +74,7 @@ export async function deleteProgram(
   _prev: ActionState,
   _formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   // Cascades: modules and everything under them (lecturer assignments, enrollments,
   // registrations, payment records, announcements, content/submissions) are deleted
@@ -92,7 +92,7 @@ export async function setProgramCurriculumFee(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = programCurriculumFeeSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {

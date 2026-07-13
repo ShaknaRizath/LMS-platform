@@ -64,11 +64,10 @@ export function EventCalendar({ events }: { events: CalendarEventData[] }) {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [selected]);
 
-  const defaultMonth = useMemo(() => {
-    const now = new Date();
-    const upcoming = events.find((event) => event.startDate >= now);
-    return (upcoming ?? events[0])?.startDate ?? now;
-  }, [events]);
+  // Always open on the current month (not the nearest event's month) so "today" is
+  // visible and highlighted by default — the calendar's nav arrows still reach any
+  // event in the past or future.
+  const defaultMonth = useMemo(() => new Date(), []);
 
   const modifiers = useMemo(() => {
     const byType: Record<CalendarEventType, Date[]> = {
@@ -101,6 +100,7 @@ export function EventCalendar({ events }: { events: CalendarEventData[] }) {
           defaultMonth={defaultMonth}
           modifiers={modifiers}
           modifiersClassNames={TYPE_DOT_CLASSNAMES}
+          classNames={{ today: "rounded-full bg-[#3FA9D6] text-white data-[selected=true]:rounded-none" }}
         />
       </div>
       {selected && (

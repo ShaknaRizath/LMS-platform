@@ -11,7 +11,7 @@ export async function createInstitutionAnnouncement(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const parsed = announcementSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -29,7 +29,7 @@ export async function createInstitutionAnnouncement(
 }
 
 export async function deleteInstitutionAnnouncement(announcementId: string) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   await prisma.announcement.delete({ where: { id: announcementId } });
 

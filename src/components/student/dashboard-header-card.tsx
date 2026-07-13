@@ -1,10 +1,5 @@
 import { Card } from "@/components/ui/card";
-
-const STAT_COLORS = [
-  { bg: "#DDF3FB", fg: "#1B7A93" },
-  { bg: "#D6EFEC", fg: "#22796E" },
-  { bg: "#DFF6E4", fg: "#2B8A4C" },
-];
+import { STUDENT_PALETTE } from "@/components/student/palette";
 
 export function DashboardHeaderCard({
   title,
@@ -24,7 +19,7 @@ export function DashboardHeaderCard({
         </div>
         <div className="flex flex-wrap gap-3">
           {stats.map((stat, index) => {
-            const color = STAT_COLORS[index % STAT_COLORS.length];
+            const color = STUDENT_PALETTE[index % STUDENT_PALETTE.length];
             return (
               <div
                 key={stat.label}

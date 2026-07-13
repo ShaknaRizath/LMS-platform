@@ -29,11 +29,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const user = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   return (
     <DashboardShell
-      roleLabel="Administrator"
+      roleLabel={user.role === "SUPER_ADMIN" ? "Super Administrator" : "Campus Administrator"}
       navItems={navItems}
       userName={user.name ?? user.email ?? "Admin"}
       userEmail={user.email ?? ""}

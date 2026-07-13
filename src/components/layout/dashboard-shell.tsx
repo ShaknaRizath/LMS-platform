@@ -3,15 +3,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone } from "lucide-react";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+
+// While browsing inside a specific module, surface that module's Assignments/
+// Quizzes/Discussions/Announcements as extra sidebar links — otherwise they're
+// only reachable via header buttons on the module's own page.
+function useLecturerModuleNavItems(pathname: string): NavItem[] {
+  const match = pathname.match(/^\/lecturer\/modules\/([^/]+)/);
+  const moduleId = match?.[1];
+  if (!moduleId) return [];
+  return [
+    { href: `/lecturer/modules/${moduleId}/assignments`, label: "Assignments", icon: <ClipboardList className="size-4" /> },
+    { href: `/lecturer/modules/${moduleId}/quizzes`, label: "Quizzes", icon: <ListChecks className="size-4" /> },
+    { href: `/lecturer/modules/${moduleId}/discussions`, label: "Discussions", icon: <MessagesSquare className="size-4" /> },
+    { href: `/lecturer/modules/${moduleId}/announcements`, label: "Announcements", icon: <Megaphone className="size-4" /> },
+  ];
+}
 
 export type NavItem = { href: string; label: string; icon: React.ReactNode };
 
@@ -69,6 +85,7 @@ export function DashboardShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const moduleNavItems = useLecturerModuleNavItems(pathname);
 
   return (
     <div className="flex w-full flex-col bg-muted/30">
@@ -111,6 +128,21 @@ export function DashboardShell({
               ) : (
                 <NavLink key={item.href} {...item} />
               )
+            )}
+            {moduleNavItems.length > 0 && (
+              <>
+                <Separator className="my-2" />
+                {!collapsed && (
+                  <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">This module</p>
+                )}
+                {moduleNavItems.map((item) =>
+                  collapsed ? (
+                    <CollapsedNavIcon key={item.href} {...item} />
+                  ) : (
+                    <NavLink key={item.href} {...item} />
+                  )
+                )}
+              </>
             )}
           </nav>
         </aside>

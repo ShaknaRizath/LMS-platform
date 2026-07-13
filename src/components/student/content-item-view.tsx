@@ -1,8 +1,10 @@
+import NextLink from "next/link";
 import {
   FileText,
   Link as LinkIcon,
   Video,
   Presentation,
+  MonitorPlay,
   File as FileIcon,
   Download,
   ExternalLink,
@@ -10,12 +12,15 @@ import {
 import type { ContentType } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 
+export type AssignmentSubmissionStatus = "NOT_SUBMITTED" | "SUBMITTED" | "GRADED";
+
 const TYPE_ICONS: Record<ContentType, typeof FileText> = {
   RICH_TEXT: FileText,
   FILE: FileIcon,
   LINK: LinkIcon,
   VIDEO: Video,
   ZOOM: Presentation,
+  GOOGLE_MEET: MonitorPlay,
 };
 
 const TYPE_ICON_COLORS: Record<ContentType, string> = {
@@ -24,10 +29,14 @@ const TYPE_ICON_COLORS: Record<ContentType, string> = {
   LINK: "#6FCB8F",
   VIDEO: "#8B7FE0",
   ZOOM: "#4FB8B0",
+  GOOGLE_MEET: "#E0A83B",
 };
 
 export function ContentItemView({
   item,
+  moduleId,
+  submissionStatus,
+  grade,
 }: {
   item: {
     id: string;
@@ -41,10 +50,14 @@ export function ContentItemView({
     zoomJoinUrl: string | null;
     zoomMeetingId: string | null;
     zoomPasscode: string | null;
+    meetJoinUrl: string | null;
     richTextHtml: string | null;
     fileUrl: string | null;
     fileName: string | null;
   };
+  moduleId: string;
+  submissionStatus?: AssignmentSubmissionStatus;
+  grade?: number | null;
 }) {
   const Icon = TYPE_ICONS[item.type];
 
@@ -54,9 +67,24 @@ export function ContentItemView({
         <Icon className="size-4" style={{ color: TYPE_ICON_COLORS[item.type] }} />
         <p className="text-sm font-medium">{item.title}</p>
         {item.isAssignment && (
-          <Badge variant="outline">
-            Assignment{item.dueDate ? ` · Due ${item.dueDate.toLocaleDateString()}` : ""}
-          </Badge>
+          <>
+            <Badge variant="outline">
+              Assignment{item.dueDate ? ` · Due ${item.dueDate.toLocaleDateString()}` : ""}
+            </Badge>
+            <Badge variant={submissionStatus === "GRADED" ? "secondary" : "outline"}>
+              {submissionStatus === "GRADED"
+                ? `Graded${grade != null ? `: ${grade}` : ""}`
+                : submissionStatus === "SUBMITTED"
+                  ? "Submitted"
+                  : "Not submitted"}
+            </Badge>
+            <NextLink
+              href={`/student/modules/${moduleId}/assignments/${item.id}`}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              View &amp; submit
+            </NextLink>
+          </>
         )}
       </div>
       {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
@@ -108,6 +136,17 @@ export function ContentItemView({
             </p>
           )}
         </div>
+      )}
+      {item.type === "GOOGLE_MEET" && item.meetJoinUrl && (
+        <a
+          href={item.meetJoinUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
+        >
+          <ExternalLink className="size-3.5" />
+          Join Google Meet
+        </a>
       )}
       {item.type === "FILE" && item.fileUrl && (
         <a

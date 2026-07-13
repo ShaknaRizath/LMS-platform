@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModuleAnnouncementForm } from "@/components/lecturer/module-announcement-form";
+import { EditAnnouncementDialog } from "@/components/lecturer/edit-announcement-dialog";
 import {
   createModuleAnnouncement,
   deleteModuleAnnouncement,
@@ -46,11 +47,22 @@ export default async function LecturerModuleAnnouncementsPage({
                   {announcement.title}
                   {announcement.isPinned && <Badge variant="secondary">Pinned</Badge>}
                 </CardTitle>
-                <form action={deleteModuleAnnouncement.bind(null, announcement.id, moduleId)}>
-                  <Button type="submit" variant="ghost" size="sm">
-                    Delete
-                  </Button>
-                </form>
+                <div className="flex items-center gap-1">
+                  <EditAnnouncementDialog
+                    announcementId={announcement.id}
+                    moduleId={moduleId}
+                    defaultValues={{
+                      title: announcement.title,
+                      body: announcement.body,
+                      isPinned: announcement.isPinned,
+                    }}
+                  />
+                  <form action={deleteModuleAnnouncement.bind(null, announcement.id, moduleId)}>
+                    <Button type="submit" variant="ghost" size="sm">
+                      Delete
+                    </Button>
+                  </form>
+                </div>
               </div>
               <CardDescription>{announcement.publishedAt.toLocaleString()}</CardDescription>
             </CardHeader>

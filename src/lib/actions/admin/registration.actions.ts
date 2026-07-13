@@ -23,7 +23,7 @@ export async function verifyPayment(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN", "FINANCE"]);
 
   const parsed = verifyPaymentSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -61,7 +61,7 @@ export async function verifyPayment(
 }
 
 export async function approveRegistration(registrationId: string): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN", "FINANCE"]);
 
   const registration = await prisma.semesterRegistration.findUnique({
     where: { id: registrationId },
@@ -113,7 +113,7 @@ export async function rejectRegistration(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const admin = await requireRole(["SUPER_ADMIN", "ADMIN", "FINANCE"]);
+  const admin = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN", "FINANCE"]);
 
   const parsed = rejectRegistrationSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {

@@ -25,11 +25,16 @@ async function main() {
   // ---------- Users ----------
   const users = [
     { email: "superadmin@cims.edu", firstName: "Super", lastName: "Admin", role: "SUPER_ADMIN" as const },
-    { email: "admin@cims.edu", firstName: "Amara", lastName: "Fernando", role: "ADMIN" as const },
+    { email: "admin@cims.edu", firstName: "Amara", lastName: "Fernando", role: "CAMPUS_ADMIN" as const },
+    { email: "academicdirector@cims.edu", firstName: "Priya", lastName: "Wijesinghe", role: "ACADEMIC_DIRECTOR" as const },
+    { email: "coordinator@cims.edu", firstName: "Ruwan", lastName: "Abeysekara", role: "PROGRAM_COORDINATOR" as const },
     { email: "lecturer1@cims.edu", firstName: "Alice", lastName: "Perera", role: "LECTURER" as const },
     { email: "lecturer2@cims.edu", firstName: "Kasun", lastName: "Silva", role: "LECTURER" as const },
     { email: "finance@cims.edu", firstName: "Nadeesha", lastName: "Rathnayake", role: "FINANCE" as const },
-    { email: "registrar@cims.edu", firstName: "Dilshan", lastName: "Jayasuriya", role: "REGISTRAR" as const },
+    { email: "marketing@cims.edu", firstName: "Chamari", lastName: "Dissanayake", role: "MARKETING_OFFICER" as const },
+    { email: "registrar@cims.edu", firstName: "Dilshan", lastName: "Jayasuriya", role: "EXAMINATION_UNIT" as const },
+    { email: "library@cims.edu", firstName: "Malsha", lastName: "Karunaratne", role: "LIBRARY_OFFICER" as const },
+    { email: "hr@cims.edu", firstName: "Suresh", lastName: "Weerasinghe", role: "HR_OFFICER" as const },
     { email: "student1@cims.edu", firstName: "Sachini", lastName: "Perera", role: "STUDENT" as const, programId: cs.id },
     { email: "student2@cims.edu", firstName: "Nimal", lastName: "Bandara", role: "STUDENT" as const, programId: cs.id },
     { email: "student3@cims.edu", firstName: "Tharindu", lastName: "Gunasekara", role: "STUDENT" as const, programId: cs.id },
@@ -40,7 +45,7 @@ async function main() {
   for (const user of users) {
     userRecords[user.email] = await prisma.user.upsert({
       where: { email: user.email },
-      update: {},
+      update: { role: user.role },
       create: { ...user, passwordHash },
     });
   }

@@ -1,4 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { StatCard } from "@/components/shared/stat-card";
 import { prisma } from "@/lib/db/prisma";
 import { RegistrationsOverTimeChart } from "@/components/admin/charts/registrations-over-time-chart";
 import { RegistrationStatusChart } from "@/components/admin/charts/registration-status-chart";
@@ -17,6 +18,10 @@ export default async function AdminDashboardPage() {
     activeSemester,
     registrationStatusCounts,
     paymentStatusCounts,
+    verifiedPayments,
+    assignmentsDue,
+    recentNotifications,
+    upcomingExams,
   ] = await Promise.all([
     prisma.semesterRegistration.count({ where: { status: "PENDING" } }),
     prisma.module.count({ where: { isActive: true } }),
@@ -25,6 +30,20 @@ export default async function AdminDashboardPage() {
     prisma.semester.findFirst({ where: { status: "ACTIVE" } }),
     prisma.semesterRegistration.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.paymentRecord.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
+    prisma.paymentRecord.findMany({
+      where: { verificationStatus: "VERIFIED" },
+      select: { amount: true },
+    }),
+    prisma.contentItem.count({
+      where: {
+        isAssignment: true,
+        dueDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 86400000) },
+      },
+    }),
+    prisma.notificationLog.count({
+      where: { sentAt: { gte: new Date(Date.now() - 86400000) } },
+    }),
+    prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED", availableFrom: { gte: new Date() } } }),
   ]);
 
   const stats = [
@@ -32,6 +51,14 @@ export default async function AdminDashboardPage() {
     { label: "Active modules", value: activeModules },
     { label: "Students", value: students },
     { label: "Lecturers", value: lecturers },
+  ];
+
+  const feeCollected = verifiedPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const homeStats = [
+    { label: "Fee collection", value: `LKR ${feeCollected.toLocaleString()}` },
+    { label: "Assignments due", value: assignmentsDue, hint: "Due within 7 days" },
+    { label: "Notifications", value: recentNotifications, hint: "Last 24 hours" },
   ];
 
   const windowStart = activeSemester?.registrationOpensAt ?? defaultWindowStart();
@@ -76,6 +103,14 @@ export default async function AdminDashboardPage() {
             </CardHeader>
           </Card>
         ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        {homeStats.map((stat) => (
+          <StatCard key={stat.label} label={stat.label} value={stat.value} hint={stat.hint} />
+        ))}
+        <StatCard label="Online students" comingSoon />
+        <StatCard label="Upcoming exams" value={upcomingExams} />
+        <StatCard label="Attendance statistics" comingSoon />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

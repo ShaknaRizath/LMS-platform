@@ -20,11 +20,16 @@ import {
 } from "@/components/ui/empty";
 
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Administrator",
+  SUPER_ADMIN: "Super Administrator",
+  CAMPUS_ADMIN: "Campus Administrator",
+  ACADEMIC_DIRECTOR: "Academic Director",
+  PROGRAM_COORDINATOR: "Program Coordinator",
   LECTURER: "Lecturer",
-  FINANCE: "Finance Staff",
-  REGISTRAR: "Registrar",
+  FINANCE: "Finance Officer",
+  MARKETING_OFFICER: "Marketing Officer",
+  EXAMINATION_UNIT: "Examination Unit",
+  LIBRARY_OFFICER: "Library Officer",
+  HR_OFFICER: "HR Officer",
   STUDENT: "Student",
 };
 

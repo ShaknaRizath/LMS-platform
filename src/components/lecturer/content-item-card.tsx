@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   FileText,
   Link as LinkIcon,
   Video,
   Presentation,
+  MonitorPlay,
   File as FileIcon,
   ChevronUp,
   ChevronDown,
@@ -47,6 +49,7 @@ const TYPE_ICONS: Record<ContentType, typeof FileText> = {
   LINK: LinkIcon,
   VIDEO: Video,
   ZOOM: Presentation,
+  GOOGLE_MEET: MonitorPlay,
 };
 
 export type ContentItemData = {
@@ -62,6 +65,7 @@ export type ContentItemData = {
   zoomJoinUrl: string | null;
   zoomMeetingId: string | null;
   zoomPasscode: string | null;
+  meetJoinUrl: string | null;
   richTextHtml: string | null;
   fileUrl: string | null;
   fileName: string | null;
@@ -112,7 +116,17 @@ export function ContentItemCard({
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium">{item.title}</p>
-          {item.isAssignment && <Badge variant="outline">Assignment</Badge>}
+          {item.isAssignment && (
+            <>
+              <Badge variant="outline">Assignment</Badge>
+              <Link
+                href={`/lecturer/modules/${moduleId}/assignments/${item.id}`}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Grade
+              </Link>
+            </>
+          )}
         </div>
         {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
       </div>

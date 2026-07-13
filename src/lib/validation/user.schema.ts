@@ -2,10 +2,15 @@ import { z } from "zod";
 
 export const ROLE_OPTIONS = [
   "SUPER_ADMIN",
-  "ADMIN",
+  "CAMPUS_ADMIN",
+  "ACADEMIC_DIRECTOR",
+  "PROGRAM_COORDINATOR",
   "LECTURER",
   "FINANCE",
-  "REGISTRAR",
+  "MARKETING_OFFICER",
+  "EXAMINATION_UNIT",
+  "LIBRARY_OFFICER",
+  "HR_OFFICER",
   "STUDENT",
 ] as const;
 
