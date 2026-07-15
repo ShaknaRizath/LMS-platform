@@ -5,6 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { announcementSchema } from "@/lib/validation/announcement.schema";
+import { notifyUsers } from "@/lib/notifications";
+import { announcementNotificationTemplate } from "@/lib/notifications/templates/communication";
 import type { ActionState } from "@/lib/actions/action-state";
 
 export async function createInstitutionAnnouncement(
@@ -21,6 +23,16 @@ export async function createInstitutionAnnouncement(
   await prisma.announcement.create({
     data: { ...parsed.data, scope: "INSTITUTION", authorId: admin.id },
   });
+
+  const students = await prisma.user.findMany({
+    where: { role: "STUDENT", isActive: true },
+    select: { id: true },
+  });
+  await notifyUsers(
+    students.map((student) => student.id),
+    "ANNOUNCEMENT_INSTITUTION",
+    announcementNotificationTemplate({ title: parsed.data.title, body: parsed.data.body })
+  );
 
   revalidatePath("/admin/announcements");
   revalidatePath("/lecturer/announcements");

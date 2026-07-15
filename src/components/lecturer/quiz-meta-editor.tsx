@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -19,9 +26,17 @@ import {
 export function QuizMetaEditor({
   quizId,
   defaultValues,
+  categories = [],
 }: {
   quizId: string;
-  defaultValues: { title: string; description: string | null; timeLimitMinutes: number | null; maxAttempts: number };
+  defaultValues: {
+    title: string;
+    description: string | null;
+    timeLimitMinutes: number | null;
+    maxAttempts: number;
+    assessmentCategoryId: string | null;
+  };
+  categories?: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -81,6 +96,28 @@ export function QuizMetaEditor({
                 <FieldError errors={state?.fieldErrors?.maxAttempts?.map((message) => ({ message }))} />
               </Field>
             </Field>
+            {categories.length > 0 && (
+              <Field>
+                <FieldLabel htmlFor="assessmentCategoryId">Assessment category (optional)</FieldLabel>
+                <Select
+                  name="assessmentCategoryId"
+                  defaultValue={defaultValues.assessmentCategoryId ?? "NONE"}
+                  items={[{ value: "NONE", label: "None" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+                >
+                  <SelectTrigger id="assessmentCategoryId" className="w-full">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">None</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             {state?.error && <FieldError>{state.error}</FieldError>}
             <Button type="submit" disabled={pending}>
               {pending ? "Saving..." : "Save changes"}

@@ -31,6 +31,7 @@ export function ContentItemForm({
   defaultValues,
   submitLabel,
   onSuccess,
+  categories = [],
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   defaultValues?: {
@@ -48,9 +49,11 @@ export function ContentItemForm({
     fileName?: string | null;
     isAssignment: boolean;
     dueDate: Date | null;
+    assessmentCategoryId?: string | null;
   };
   submitLabel: string;
   onSuccess?: () => void;
+  categories?: { id: string; name: string }[];
 }) {
   const [type, setType] = useState<ContentType>(defaultValues?.type ?? "RICH_TEXT");
   const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string } | null>(
@@ -234,6 +237,32 @@ export function ContentItemForm({
             defaultValue={defaultValues?.dueDate ? defaultValues.dueDate.toISOString().slice(0, 10) : ""}
           />
         </Field>
+
+        {categories.length > 0 && (
+          <Field>
+            <FieldLabel htmlFor="assessmentCategoryId">Assessment category (optional)</FieldLabel>
+            <Select
+              name="assessmentCategoryId"
+              defaultValue={defaultValues?.assessmentCategoryId ?? "NONE"}
+              items={[{ value: "NONE", label: "None" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+            >
+              <SelectTrigger id="assessmentCategoryId" className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">None</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Counts toward the Grade Book if this is graded. Leave as None to exclude it.
+            </p>
+          </Field>
+        )}
 
         {state?.error && <FieldError>{state.error}</FieldError>}
         <Button type="submit" disabled={pending || uploading}>

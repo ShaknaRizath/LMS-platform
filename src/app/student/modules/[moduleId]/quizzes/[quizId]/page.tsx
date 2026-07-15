@@ -62,17 +62,25 @@ export default async function StudentQuizDetailPage({
               className="rounded-lg border border-border bg-card p-3 text-sm hover:bg-muted/40"
             >
               Attempt {attempt.attemptNumber}:{" "}
-              {attempt.pointsEarned != null && attempt.totalPoints
-                ? `${attempt.pointsEarned} / ${attempt.totalPoints} (${Math.round(
-                    (attempt.pointsEarned / attempt.totalPoints) * 100
-                  )}%)`
-                : "—"}
+              {!attempt.resultsPublishedAt
+                ? "Submitted — awaiting grading"
+                : attempt.pointsEarned != null && attempt.totalPoints
+                  ? `${attempt.pointsEarned} / ${attempt.totalPoints} (${Math.round(
+                      (attempt.pointsEarned / attempt.totalPoints) * 100
+                    )}%)`
+                  : "—"}
             </Link>
           ))}
         </div>
       )}
 
-      {inProgress ? (
+      {quiz.kind === "PRACTICAL" ? (
+        submitted.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Your lecturer will score this during your practical session.
+          </p>
+        )
+      ) : inProgress ? (
         <Button nativeButton={false} className="w-fit" render={<Link href={`/student/modules/${moduleId}/quizzes/${quizId}/attempt/${inProgress.id}`} />}>
           Continue attempt
         </Button>

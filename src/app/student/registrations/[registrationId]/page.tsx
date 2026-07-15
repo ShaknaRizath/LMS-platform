@@ -20,7 +20,7 @@ export default async function StudentRegistrationDetailPage({
     include: {
       semester: { include: { academicYear: true } },
       registrationModules: { include: { module: true } },
-      paymentRecords: { orderBy: { uploadedAt: "desc" } },
+      paymentRecords: { orderBy: { uploadedAt: "desc" }, include: { invoice: true } },
     },
   });
   if (!registration || registration.studentId !== student.id) notFound();
@@ -98,6 +98,19 @@ export default async function StudentRegistrationDetailPage({
                         className="text-primary hover:underline"
                       >
                         View receipt
+                      </a>
+                    </>
+                  )}
+                  {payment.invoice && (
+                    <>
+                      {" · "}
+                      <a
+                        href={payment.invoice.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Download invoice
                       </a>
                     </>
                   )}

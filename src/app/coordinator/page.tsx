@@ -22,10 +22,6 @@ export default async function ProgramCoordinatorDashboardPage() {
         <StatCard label="Available lecturers" value={availableLecturers} />
         <StatCard label="Active semester" value={activeSemester?.name ?? "—"} />
       </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Timetable conflicts" comingSoon />
-      </div>
     </div>
   );
 }

@@ -13,6 +13,12 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 
+const KIND_LABELS: Record<string, string> = {
+  QUIZ: "Quiz",
+  EXAM: "Exam",
+  PRACTICAL: "Practical",
+};
+
 export default async function StudentQuizzesPage({
   params,
 }: {
@@ -51,8 +57,16 @@ export default async function StudentQuizzesPage({
           {quizzes.map((quiz) => {
             const submitted = quiz.attempts.filter((attempt) => attempt.submittedAt);
             const inProgress = quiz.attempts.find((attempt) => !attempt.submittedAt);
+            const awaitingGrading = submitted.some((attempt) => !attempt.resultsPublishedAt);
             const best = submitted.reduce<number | null>((acc, attempt) => {
-              if (attempt.pointsEarned == null || attempt.totalPoints == null || attempt.totalPoints === 0) return acc;
+              if (
+                !attempt.resultsPublishedAt ||
+                attempt.pointsEarned == null ||
+                attempt.totalPoints == null ||
+                attempt.totalPoints === 0
+              ) {
+                return acc;
+              }
               const pct = Math.round((attempt.pointsEarned / attempt.totalPoints) * 100);
               return acc === null || pct > acc ? pct : acc;
             }, null);
@@ -61,11 +75,15 @@ export default async function StudentQuizzesPage({
               ? "In progress"
               : best !== null
                 ? `Completed: ${best}%`
-                : quiz.status === "SCHEDULED"
-                  ? "Scheduled"
-                  : quiz.status === "CLOSED"
-                    ? "Closed"
-                    : "Not started";
+                : awaitingGrading
+                  ? "Submitted — awaiting grading"
+                  : quiz.status === "SCHEDULED"
+                    ? "Scheduled"
+                    : quiz.status === "CLOSED"
+                      ? "Closed"
+                      : quiz.kind === "PRACTICAL"
+                        ? "Awaiting assessment"
+                        : "Not started";
 
             return (
               <Link key={quiz.id} href={`/student/modules/${moduleId}/quizzes/${quiz.id}`}>
@@ -75,7 +93,7 @@ export default async function StudentQuizzesPage({
                       <div>
                         <div className="flex items-center gap-2">
                           <CardTitle>{quiz.title}</CardTitle>
-                          <Badge variant="outline">{quiz.kind === "EXAM" ? "Exam" : "Quiz"}</Badge>
+                          <Badge variant="outline">{KIND_LABELS[quiz.kind]}</Badge>
                         </div>
                         <CardDescription>
                           {statusLabel} · {quiz.attempts.length} / {quiz.maxAttempts} attempt

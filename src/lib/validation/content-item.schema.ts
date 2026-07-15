@@ -11,6 +11,12 @@ const baseFields = {
     .string()
     .optional()
     .transform((value) => (value ? new Date(value) : undefined)),
+  // Transforms to null (not undefined) so clearing the category on an edit actually
+  // updates the field to null instead of Prisma silently skipping an undefined key.
+  assessmentCategoryId: z
+    .string()
+    .optional()
+    .transform((value) => (value && value !== "NONE" ? value : null)),
 };
 
 export const contentItemSchema = z.discriminatedUnion("type", [

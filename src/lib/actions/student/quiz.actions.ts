@@ -111,11 +111,22 @@ export async function submitAttempt(
     attempt.quiz.timeLimitMinutes != null &&
     new Date() > new Date(attempt.startedAt.getTime() + attempt.quiz.timeLimitMinutes * 60_000);
 
+  // No essay questions means nothing needs manual review — reveal the score right
+  // away. Otherwise it stays hidden from the student until the lecturer explicitly
+  // publishes it via publishAttemptResults, once every essay answer is graded.
+  const hasEssay = attempt.quiz.questions.some((question) => question.type === "ESSAY");
+  const now = new Date();
+
   await prisma.$transaction([
     prisma.quizAnswer.createMany({ data: answerData.map((answer) => ({ ...answer, attemptId })) }),
     prisma.quizAttempt.update({
       where: { id: attemptId },
-      data: { submittedAt: new Date(), pointsEarned, totalPoints },
+      data: {
+        submittedAt: now,
+        pointsEarned,
+        totalPoints,
+        resultsPublishedAt: hasEssay ? null : now,
+      },
     }),
   ]);
 

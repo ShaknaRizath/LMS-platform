@@ -98,9 +98,9 @@ export async function deleteModule(
 ): Promise<ActionState> {
   await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
-  // Cascades: lecturer assignments, enrollments, registration links, weeks/content/
-  // submissions, and announcements for this module are deleted with it (see
-  // schema.prisma onDelete: Cascade). Lecturer and student accounts are unaffected.
+  // Cascades: lecturer assignments, class sessions/timetable, enrollments, registration
+  // links, weeks/content/submissions, and announcements for this module are deleted with
+  // it (see schema.prisma onDelete: Cascade). Lecturer and student accounts are unaffected.
   await prisma.module.delete({ where: { id: moduleId } });
   revalidatePath("/admin/modules");
   redirect("/admin/modules");

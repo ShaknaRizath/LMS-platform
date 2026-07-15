@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
+import { storage } from "@/lib/storage";
+import { generateInvoicePdf } from "@/lib/finance/generate";
 import {
   verifyPaymentSchema,
   rejectRegistrationSchema,
@@ -38,12 +41,56 @@ export async function verifyPayment(
       verifiedAt: new Date(),
       verificationNotes: parsed.data.notes,
     },
-    include: { registration: { include: { student: true } } },
+    include: {
+      registration: { include: { student: { include: { program: true } }, semester: true } },
+    },
   });
+
+  let invoiceUrl: string | undefined;
+
+  if (parsed.data.decision === "VERIFIED") {
+    const { student, semester } = payment.registration;
+    const fee = student.programId
+      ? await prisma.programCurriculumFee.findUnique({
+          where: {
+            programId_yearLevel_semesterNumber: {
+              programId: student.programId,
+              yearLevel: payment.registration.yearLevel,
+              semesterNumber: semester.semesterNumber,
+            },
+          },
+        })
+      : null;
+
+    const invoiceNumber = `INV-${randomBytes(6).toString("hex").toUpperCase()}`;
+    const pdfBuffer = await generateInvoicePdf({
+      invoiceNumber,
+      issuedAt: new Date(),
+      studentName: `${student.firstName} ${student.lastName}`,
+      programName: student.program?.name ?? "—",
+      semesterLabel: semester.name,
+      description: fee ? `${semester.name} tuition fee` : "Payment received",
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      method: payment.method,
+      verifiedAt: payment.verifiedAt ?? new Date(),
+    });
+    const uploaded = await storage.uploadBuffer({
+      folder: "invoices",
+      filename: `${payment.id}.pdf`,
+      buffer: pdfBuffer,
+      contentType: "application/pdf",
+    });
+
+    await prisma.invoice.create({
+      data: { paymentRecordId: payment.id, invoiceNumber, pdfUrl: uploaded.url },
+    });
+    invoiceUrl = uploaded.url;
+  }
 
   const template =
     parsed.data.decision === "VERIFIED"
-      ? paymentVerifiedTemplate({ firstName: payment.registration.student.firstName })
+      ? paymentVerifiedTemplate({ firstName: payment.registration.student.firstName, invoiceUrl })
       : paymentRejectedTemplate({
           firstName: payment.registration.student.firstName,
           reason: parsed.data.notes ?? "",
@@ -57,6 +104,7 @@ export async function verifyPayment(
 
   revalidatePath(`/admin/registrations/${registrationId}`);
   revalidatePath(`/finance/registrations/${registrationId}`);
+  revalidatePath("/student/payments");
   return undefined;
 }
 

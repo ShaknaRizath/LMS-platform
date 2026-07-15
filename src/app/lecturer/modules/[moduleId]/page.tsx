@@ -22,15 +22,18 @@ export default async function LecturerModuleDetailPage({
   });
   if (!assignment) notFound();
 
-  const module_ = await prisma.module.findUnique({
-    where: { id: moduleId },
-    include: {
-      weeks: {
-        orderBy: { orderIndex: "asc" },
-        include: { contentItems: { orderBy: { orderIndex: "asc" } } },
+  const [module_, categories] = await Promise.all([
+    prisma.module.findUnique({
+      where: { id: moduleId },
+      include: {
+        weeks: {
+          orderBy: { orderIndex: "asc" },
+          include: { contentItems: { orderBy: { orderIndex: "asc" } } },
+        },
       },
-    },
-  });
+    }),
+    prisma.assessmentCategory.findMany({ where: { moduleId }, orderBy: { name: "asc" } }),
+  ]);
   if (!module_) notFound();
 
   return (
@@ -92,7 +95,7 @@ export default async function LecturerModuleDetailPage({
             className="flex flex-col gap-3"
           >
             {module_.weeks.map((week) => (
-              <WeekPanel key={week.id} week={week} moduleId={module_.id} />
+              <WeekPanel key={week.id} week={week} moduleId={module_.id} categories={categories} />
             ))}
           </Accordion>
         )}

@@ -19,17 +19,19 @@ import {
 import { ClipboardCheck } from "lucide-react";
 
 export default async function ExaminationUnitDashboardPage() {
-  const [registrations, activeEnrollments, ungradedSubmissions, activeSemester, scheduledExams] = await Promise.all([
-    prisma.semesterRegistration.findMany({
-      where: { status: "PENDING" },
-      include: { student: true, semester: { include: { academicYear: true } } },
-      orderBy: { submittedAt: "asc" },
-    }),
-    prisma.enrollment.count({ where: { status: "ACTIVE" } }),
-    prisma.submission.count({ where: { gradedAt: null } }),
-    prisma.semester.findFirst({ where: { status: "ACTIVE" } }),
-    prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED" } }),
-  ]);
+  const [registrations, activeEnrollments, ungradedSubmissions, activeSemester, scheduledExams, certificatesIssued] =
+    await Promise.all([
+      prisma.semesterRegistration.findMany({
+        where: { status: "PENDING" },
+        include: { student: true, semester: { include: { academicYear: true } } },
+        orderBy: { submittedAt: "asc" },
+      }),
+      prisma.enrollment.count({ where: { status: "ACTIVE" } }),
+      prisma.submission.count({ where: { gradedAt: null } }),
+      prisma.semester.findFirst({ where: { status: "ACTIVE" } }),
+      prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED" } }),
+      prisma.certificate.count(),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,7 +45,7 @@ export default async function ExaminationUnitDashboardPage() {
         <StatCard label="Ungraded submissions" value={ungradedSubmissions} />
         <StatCard label="Active semester" value={activeSemester?.name ?? "—"} />
         <StatCard label="Scheduled exams" value={scheduledExams} />
-        <StatCard label="Transcripts issued" comingSoon />
+        <StatCard label="Transcripts issued" value={certificatesIssued} />
       </div>
 
       <div>

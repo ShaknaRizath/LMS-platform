@@ -17,12 +17,21 @@ import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field
 const KIND_OPTIONS = [
   { value: "QUIZ", label: "Quiz (you publish it yourself)" },
   { value: "EXAM", label: "Exam (Examination Unit schedules it)" },
+  { value: "PRACTICAL", label: "Practical assessment (rubric-graded)" },
 ];
+
+const SUBMIT_LABELS: Record<string, string> = {
+  QUIZ: "Create quiz",
+  EXAM: "Create exam",
+  PRACTICAL: "Create practical assessment",
+};
 
 export function CreateQuizForm({
   action,
+  categories = [],
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  categories?: { id: string; name: string }[];
 }) {
   const [kind, setKind] = useState("QUIZ");
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined);
@@ -70,9 +79,32 @@ export function CreateQuizForm({
           </Field>
         </Field>
 
+        {categories.length > 0 && (
+          <Field>
+            <FieldLabel htmlFor="assessmentCategoryId">Assessment category (optional)</FieldLabel>
+            <Select
+              name="assessmentCategoryId"
+              defaultValue="NONE"
+              items={[{ value: "NONE", label: "None" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+            >
+              <SelectTrigger id="assessmentCategoryId" className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">None</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
+
         {state?.error && <FieldError>{state.error}</FieldError>}
         <Button type="submit" disabled={pending} className="self-start">
-          {pending ? "Creating..." : kind === "EXAM" ? "Create exam" : "Create quiz"}
+          {pending ? "Creating..." : SUBMIT_LABELS[kind]}
         </Button>
       </FieldGroup>
     </form>

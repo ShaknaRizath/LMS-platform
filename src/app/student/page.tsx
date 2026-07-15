@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
+import { computeStudentAcademicRecord } from "@/lib/grades/gpa";
 import { RegistrationStatusBadge } from "@/components/shared/registration-status-badge";
 import { DashboardHeaderCard } from "@/components/student/dashboard-header-card";
 import { AssignmentsCard, type TodoItem } from "@/components/student/assignments-card";
@@ -39,8 +40,16 @@ export default async function StudentDashboardPage() {
 
   const now = new Date();
 
-  const [upcomingAssignments, allAssignments, submittedCount, notices, recentContent, recentGraded, openQuizzes] =
-    await Promise.all([
+  const [
+    upcomingAssignments,
+    allAssignments,
+    submittedCount,
+    notices,
+    recentContent,
+    recentGraded,
+    openQuizzes,
+    attendanceRecords,
+  ] = await Promise.all([
       prisma.contentItem.findMany({
         where: {
           isAssignment: true,
@@ -92,9 +101,19 @@ export default async function StudentDashboardPage() {
         include: { module: true, attempts: { where: { studentId: student.id } } },
         orderBy: { createdAt: "desc" },
       }),
+      prisma.attendanceRecord.findMany({
+        where: { studentId: student.id },
+        select: { status: true },
+      }),
     ]);
 
+  const academicRecord = await computeStudentAcademicRecord(student.id);
+
   const upcomingQuizzes = openQuizzes.filter((quiz) => quiz.attempts.length < quiz.maxAttempts).slice(0, 3);
+
+  const attendedCount = attendanceRecords.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
+  const attendanceRate =
+    attendanceRecords.length > 0 ? `${Math.round((attendedCount / attendanceRecords.length) * 100)}%` : "—";
 
   const todoItems: TodoItem[] = [
     ...upcomingAssignments.map((item) => ({
@@ -150,6 +169,11 @@ export default async function StudentDashboardPage() {
           {
             label: "Payment status",
             value: latestRegistration?.paymentRecords[0]?.verificationStatus ?? "—",
+          },
+          { label: "Attendance rate", value: attendanceRate },
+          {
+            label: "Cumulative GPA",
+            value: academicRecord.cumulativeGpa !== null ? academicRecord.cumulativeGpa.toFixed(2) : "—",
           },
         ]}
       />

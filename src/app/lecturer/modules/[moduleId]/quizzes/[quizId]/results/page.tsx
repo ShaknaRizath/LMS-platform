@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EssayGradeForm } from "@/components/lecturer/essay-grade-form";
+import { PublishResultsButton } from "@/components/lecturer/publish-results-button";
 import {
   Empty,
   EmptyHeader,
@@ -18,6 +19,7 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 import { PenLine } from "lucide-react";
+import { isModuleGradesLocked, MODULE_GRADES_LOCKED_MESSAGE } from "@/lib/grades/lock";
 
 export default async function LecturerQuizResultsPage({
   params,
@@ -35,21 +37,27 @@ export default async function LecturerQuizResultsPage({
   const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
   if (!quiz || quiz.moduleId !== moduleId) notFound();
 
-  const [enrollments, attempts, essayAnswers] = await Promise.all([
+  const [enrollments, attempts, essayAnswers, locked] = await Promise.all([
     prisma.enrollment.findMany({
       where: { moduleId, status: "ACTIVE" },
       include: { student: true },
       orderBy: { student: { firstName: "asc" } },
     }),
-    prisma.quizAttempt.findMany({ where: { quizId } }),
+    prisma.quizAttempt.findMany({ where: { quizId }, include: { student: true } }),
     prisma.quizAnswer.findMany({
       where: { question: { quizId, type: "ESSAY" }, attempt: { submittedAt: { not: null } } },
       include: { question: true, attempt: { include: { student: true } } },
       orderBy: { attempt: { submittedAt: "asc" } },
     }),
+    isModuleGradesLocked(moduleId),
   ]);
   const ungradedEssayAnswers = essayAnswers.filter((answer) => answer.pointsAwarded == null);
   const gradedEssayAnswers = essayAnswers.filter((answer) => answer.pointsAwarded != null);
+  const ungradedCountByAttemptId = new Map<string, number>();
+  for (const answer of ungradedEssayAnswers) {
+    ungradedCountByAttemptId.set(answer.attemptId, (ungradedCountByAttemptId.get(answer.attemptId) ?? 0) + 1);
+  }
+  const unpublishedAttempts = attempts.filter((attempt) => attempt.submittedAt && !attempt.resultsPublishedAt);
 
   const attemptsByStudentId = new Map<string, typeof attempts>();
   for (const attempt of attempts) {
@@ -65,6 +73,11 @@ export default async function LecturerQuizResultsPage({
         <p className="text-muted-foreground">
           {attempts.filter((attempt) => attempt.submittedAt).length} submitted attempt(s)
         </p>
+        {locked && (
+          <p className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {MODULE_GRADES_LOCKED_MESSAGE}
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card">
@@ -80,19 +93,22 @@ export default async function LecturerQuizResultsPage({
             {enrollments.map((enrollment) => {
               const studentAttempts = attemptsByStudentId.get(enrollment.studentId) ?? [];
               const submitted = studentAttempts.filter((attempt) => attempt.submittedAt);
-              const best = submitted.reduce<{ pointsEarned: number; totalPoints: number } | null>(
-                (acc, attempt) => {
-                  if (attempt.pointsEarned == null || attempt.totalPoints == null || attempt.totalPoints === 0) {
-                    return acc;
-                  }
-                  const pct = attempt.pointsEarned / attempt.totalPoints;
-                  if (!acc || pct > acc.pointsEarned / acc.totalPoints) {
-                    return { pointsEarned: attempt.pointsEarned, totalPoints: attempt.totalPoints };
-                  }
+              const best = submitted.reduce<
+                { pointsEarned: number; totalPoints: number; published: boolean } | null
+              >((acc, attempt) => {
+                if (attempt.pointsEarned == null || attempt.totalPoints == null || attempt.totalPoints === 0) {
                   return acc;
-                },
-                null
-              );
+                }
+                const pct = attempt.pointsEarned / attempt.totalPoints;
+                if (!acc || pct > acc.pointsEarned / acc.totalPoints) {
+                  return {
+                    pointsEarned: attempt.pointsEarned,
+                    totalPoints: attempt.totalPoints,
+                    published: attempt.resultsPublishedAt != null,
+                  };
+                }
+                return acc;
+              }, null);
 
               return (
                 <TableRow key={enrollment.id}>
@@ -106,7 +122,7 @@ export default async function LecturerQuizResultsPage({
                     {best
                       ? `${best.pointsEarned} / ${best.totalPoints} (${Math.round(
                           (best.pointsEarned / best.totalPoints) * 100
-                        )}%)`
+                        )}%)${best.published ? "" : " · not published to student"}`
                       : "Not attempted"}
                   </TableCell>
                 </TableRow>
@@ -115,6 +131,33 @@ export default async function LecturerQuizResultsPage({
           </TableBody>
         </Table>
       </div>
+
+      {unpublishedAttempts.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-foreground">Publish results</h2>
+          {unpublishedAttempts.map((attempt) => {
+            const pendingCount = ungradedCountByAttemptId.get(attempt.id) ?? 0;
+            return (
+              <div
+                key={attempt.id}
+                className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {attempt.student.firstName} {attempt.student.lastName} — Attempt {attempt.attemptNumber}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingCount > 0
+                      ? `${pendingCount} essay answer${pendingCount === 1 ? "" : "s"} still need grading`
+                      : "All essay answers graded — ready to publish"}
+                  </p>
+                </div>
+                {pendingCount === 0 && <PublishResultsButton attemptId={attempt.id} quizId={quizId} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {essayAnswers.length > 0 && (
         <div className="flex flex-col gap-4">

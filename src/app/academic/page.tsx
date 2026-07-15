@@ -16,7 +16,7 @@ export default async function AcademicDirectorDashboardPage() {
         <p className="text-muted-foreground">Programs, curriculum standards, and quality assurance.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active programs" value={activePrograms} />
         <StatCard label="Active modules" value={activeModules} />
         <StatCard label="Active lecturers" value={activeLecturers} />
@@ -25,7 +25,6 @@ export default async function AcademicDirectorDashboardPage() {
           value={modulesMissingLecturer}
           hint="Active modules with no lecturer assigned"
         />
-        <StatCard label="Curriculum quality reviews" comingSoon />
       </div>
     </div>
   );

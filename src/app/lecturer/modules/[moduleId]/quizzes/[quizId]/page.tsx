@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Users } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,9 @@ import { QuizMetaEditor } from "@/components/lecturer/quiz-meta-editor";
 import { QuizStatusActions } from "@/components/lecturer/quiz-status-actions";
 import { QuizQuestionList } from "@/components/lecturer/quiz-question-list";
 import { QuizQuestionForm } from "@/components/lecturer/quiz-question-form";
+import { RubricCriteriaManager } from "@/components/lecturer/rubric-criteria-manager";
+import { QuizOutcomesForm } from "@/components/lecturer/quiz-outcomes-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { addQuestion } from "@/lib/actions/lecturer/quiz.actions";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -16,6 +19,12 @@ const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
   CLOSED: "Closed",
+};
+
+const KIND_LABELS: Record<string, string> = {
+  QUIZ: "Quiz",
+  EXAM: "Exam",
+  PRACTICAL: "Practical",
 };
 
 export default async function LecturerQuizDetailPage({
@@ -31,20 +40,28 @@ export default async function LecturerQuizDetailPage({
   });
   if (!assignment) notFound();
 
-  const quiz = await prisma.quiz.findUnique({
-    where: { id: quizId },
-    include: {
-      questions: {
-        orderBy: { orderIndex: "asc" },
-        include: { options: { orderBy: { orderIndex: "asc" } } },
+  const [quiz, categories, moduleOutcomes] = await Promise.all([
+    prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        questions: {
+          orderBy: { orderIndex: "asc" },
+          include: { options: { orderBy: { orderIndex: "asc" } } },
+        },
+        rubricCriteria: { orderBy: { orderIndex: "asc" } },
+        scheduledBy: true,
+        learningOutcomes: true,
+        _count: { select: { attempts: true } },
       },
-      scheduledBy: true,
-      _count: { select: { attempts: true } },
-    },
-  });
+    }),
+    prisma.assessmentCategory.findMany({ where: { moduleId }, orderBy: { name: "asc" } }),
+    prisma.learningOutcome.findMany({ where: { moduleId }, orderBy: { code: "asc" } }),
+  ]);
   if (!quiz || quiz.moduleId !== moduleId) notFound();
 
   const isDraft = quiz.status === "DRAFT";
+  const isPractical = quiz.kind === "PRACTICAL";
+  const canPublish = isPractical ? quiz.rubricCriteria.length > 0 : quiz.questions.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,7 +69,7 @@ export default async function LecturerQuizDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-foreground">{quiz.title}</h1>
-            <Badge variant="outline">{quiz.kind === "EXAM" ? "Exam" : "Quiz"}</Badge>
+            <Badge variant="outline">{KIND_LABELS[quiz.kind]}</Badge>
             <Badge variant={quiz.status === "PUBLISHED" || quiz.status === "SCHEDULED" ? "default" : "secondary"}>
               {STATUS_LABELS[quiz.status]}
             </Badge>
@@ -64,7 +81,9 @@ export default async function LecturerQuizDetailPage({
                   description: quiz.description,
                   timeLimitMinutes: quiz.timeLimitMinutes,
                   maxAttempts: quiz.maxAttempts,
+                  assessmentCategoryId: quiz.assessmentCategoryId,
                 }}
+                categories={categories}
               />
             )}
           </div>
@@ -73,6 +92,15 @@ export default async function LecturerQuizDetailPage({
             {quiz.timeLimitMinutes ? `${quiz.timeLimitMinutes} min time limit` : "No time limit"} · Max{" "}
             {quiz.maxAttempts} attempt{quiz.maxAttempts === 1 ? "" : "s"}
           </p>
+          {quiz.learningOutcomes.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {quiz.learningOutcomes.map((outcome) => (
+                <Badge key={outcome.id} variant="secondary">
+                  {outcome.code}
+                </Badge>
+              ))}
+            </div>
+          )}
           {quiz.kind === "EXAM" && (
             <p className="text-sm text-muted-foreground">
               {quiz.status === "DRAFT" && quiz.submittedForSchedulingAt && "Awaiting Examination Unit scheduling."}
@@ -88,6 +116,12 @@ export default async function LecturerQuizDetailPage({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {isPractical && !isDraft && (
+            <Button variant="outline" nativeButton={false} render={<Link href={`/lecturer/modules/${moduleId}/quizzes/${quizId}/score`} />}>
+              <Users />
+              Score students
+            </Button>
+          )}
           <Button variant="outline" nativeButton={false} render={<Link href={`/lecturer/modules/${moduleId}/quizzes/${quizId}/results`} />}>
             <BarChart3 />
             Results ({quiz._count.attempts})
@@ -96,16 +130,34 @@ export default async function LecturerQuizDetailPage({
             quizId={quiz.id}
             kind={quiz.kind}
             status={quiz.status}
-            hasQuestions={quiz.questions.length > 0}
+            canPublish={canPublish}
           />
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-foreground">Questions</h2>
-        <QuizQuestionList questions={quiz.questions} quizId={quiz.id} canEdit={isDraft} />
-        {isDraft && <QuizQuestionForm action={addQuestion.bind(null, quiz.id)} />}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Learning outcomes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <QuizOutcomesForm
+            quizId={quiz.id}
+            moduleId={moduleId}
+            outcomes={moduleOutcomes}
+            taggedOutcomeIds={quiz.learningOutcomes.map((o) => o.id)}
+          />
+        </CardContent>
+      </Card>
+
+      {isPractical ? (
+        <RubricCriteriaManager quizId={quiz.id} criteria={quiz.rubricCriteria} canEdit={isDraft} />
+      ) : (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-foreground">Questions</h2>
+          <QuizQuestionList questions={quiz.questions} quizId={quiz.id} canEdit={isDraft} />
+          {isDraft && <QuizQuestionForm action={addQuestion.bind(null, quiz.id)} />}
+        </div>
+      )}
     </div>
   );
 }

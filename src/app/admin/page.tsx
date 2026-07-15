@@ -46,6 +46,8 @@ export default async function AdminDashboardPage() {
     prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED", availableFrom: { gte: new Date() } } }),
   ]);
 
+  const pendingApplications = await prisma.application.count({ where: { status: "PENDING" } });
+
   const stats = [
     { label: "Pending registrations", value: pendingRegistrations },
     { label: "Active modules", value: activeModules },
@@ -59,10 +61,19 @@ export default async function AdminDashboardPage() {
     { label: "Fee collection", value: `LKR ${feeCollected.toLocaleString()}` },
     { label: "Assignments due", value: assignmentsDue, hint: "Due within 7 days" },
     { label: "Notifications", value: recentNotifications, hint: "Last 24 hours" },
+    { label: "Pending admissions", value: pendingApplications },
   ];
 
   const windowStart = activeSemester?.registrationOpensAt ?? defaultWindowStart();
   const windowEnd = activeSemester?.registrationClosesAt ?? new Date();
+
+  const attendanceRecords = await prisma.attendanceRecord.findMany({
+    where: { occurrenceDate: { gte: windowStart, lte: windowEnd } },
+    select: { status: true },
+  });
+  const attendedCount = attendanceRecords.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
+  const attendanceRate =
+    attendanceRecords.length > 0 ? `${Math.round((attendedCount / attendanceRecords.length) * 100)}%` : "—";
 
   const registrationsInWindow = await prisma.semesterRegistration.findMany({
     where: { createdAt: { gte: windowStart, lte: windowEnd } },
@@ -110,7 +121,7 @@ export default async function AdminDashboardPage() {
         ))}
         <StatCard label="Online students" comingSoon />
         <StatCard label="Upcoming exams" value={upcomingExams} />
-        <StatCard label="Attendance statistics" comingSoon />
+        <StatCard label="Attendance rate" value={attendanceRate} hint="Active semester's registration window" />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

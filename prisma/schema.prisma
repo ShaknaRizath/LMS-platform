@@ -89,15 +89,25 @@ enum NotificationStatus {
   STUBBED
 }
 
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
 enum QuizKind {
   QUIZ
   EXAM
+  PRACTICAL
 }
 
 // QUIZ: DRAFT -> PUBLISHED -> CLOSED (lecturer-controlled, like ContentStatus).
 // EXAM: DRAFT -> SCHEDULED -> CLOSED (SCHEDULED only reachable via the Examination
 // Unit's scheduleExam action; submittedForSchedulingAt marks a DRAFT exam as ready
 // for their review queue).
+// PRACTICAL: DRAFT -> PUBLISHED -> CLOSED, same self-publish path as QUIZ. Has zero
+// QuizQuestion rows — scored via RubricCriterion/RubricScore instead, lecturer-graded
+// directly with no student-facing attempt flow.
 enum QuizStatus {
   DRAFT
   SCHEDULED
@@ -109,6 +119,16 @@ enum QuestionType {
   MCQ
   TRUE_FALSE
   ESSAY
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }
 
 // ---------- CORE ----------
@@ -148,6 +168,16 @@ model User {
   quizzesCreated            Quiz[]                     @relation("QuizCreatedBy")
   quizzesScheduled          Quiz[]                     @relation("QuizScheduledBy")
   quizAttempts              QuizAttempt[]              @relation("QuizAttemptStudent")
+  notificationReads         NotificationRead[]
+  certificatesEarned        Certificate[]              @relation("CertificateStudent")
+  certificatesIssued        Certificate[]              @relation("CertificateIssuedBy")
+  taughtSessions            ClassSession[]             @relation("ClassSessionLecturer")
+  attendanceRecords         AttendanceRecord[]         @relation("AttendanceStudent")
+  attendanceRecordsMarked   AttendanceRecord[]         @relation("AttendanceMarkedBy")
+  applicationsReviewed      Application[]              @relation("ApplicationReviewedBy")
+  applicationCreated        Application?               @relation("ApplicationCreatedUser")
+  moduleGradeLocksApplied   ModuleGradeLock[]           @relation("ModuleGradeLockedBy")
+  moduleGradeLocksRemoved   ModuleGradeLock[]           @relation("ModuleGradeUnlockedBy")
 
   @@index([role])
 }
@@ -179,6 +209,40 @@ model Program {
   modules        Module[]
   students       User[]
   curriculumFees ProgramCurriculumFee[]
+  applications   Application[]
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A prospective student's public application — no User account exists until approved.
+// referenceCode is a public opaque lookup key (same convention as Certificate.verificationCode)
+// so an applicant can check their status without an account.
+model Application {
+  id              String            @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  programId       String
+  program         Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  statement       String?           @db.Text
+  status          ApplicationStatus @default(PENDING)
+  referenceCode   String            @unique
+  submittedAt     DateTime          @default(now())
+  reviewedById    String?
+  reviewedBy      User?             @relation("ApplicationReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdUserId   String?           @unique
+  createdUser     User?             @relation("ApplicationCreatedUser", fields: [createdUserId], references: [id], onDelete: SetNull)
+  offerLetterUrl  String?
+
+  @@index([status])
+  @@index([referenceCode])
 }
 
 model AcademicYear {
@@ -255,13 +319,18 @@ model Module {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  weeks               ModuleWeek[]
-  lecturerAssignments LecturerModuleAssignment[]
-  announcements       Announcement[]
-  enrollments         Enrollment[]
-  registrationModules RegistrationModule[]
-  discussionThreads   DiscussionThread[]
-  quizzes             Quiz[]
+  weeks                ModuleWeek[]
+  lecturerAssignments  LecturerModuleAssignment[]
+  classSessions        ClassSession[]
+  announcements        Announcement[]
+  enrollments          Enrollment[]
+  registrationModules  RegistrationModule[]
+  discussionThreads    DiscussionThread[]
+  quizzes              Quiz[]
+  certificates         Certificate[]
+  assessmentCategories AssessmentCategory[]
+  learningOutcomes     LearningOutcome[]
+  gradeLock            ModuleGradeLock?
 
   @@unique([code, academicYearId, semesterId])
   @@index([programId])
@@ -279,6 +348,65 @@ model LecturerModuleAssignment {
   assignedAt   DateTime @default(now())
 
   @@unique([lecturerId, moduleId])
+}
+
+// ---------- CLASS SESSIONS / TIMETABLE ----------
+
+// Recurring weekly class schedule for a module — day of week + clock time, not a fixed
+// date, since it repeats every week for the module's semester. Double-booking (same room
+// or same lecturer overlapping in time) is a range-overlap problem, not an equality one,
+// so it can't be expressed as a DB @@unique constraint — it's checked explicitly in
+// class-session.actions.ts before create/update, the same way AcademicYear.isActive's
+// "only one active" invariant is enforced in application code rather than the schema.
+model ClassSession {
+  id        String    @id @default(cuid())
+  moduleId  String
+  module    Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  dayOfWeek DayOfWeek
+  // "HH:MM", 24h zero-padded — lexicographic string comparison matches chronological
+  // order, so Prisma lt/gt filters work directly for overlap queries with no date math.
+  startTime String
+  endTime   String
+  room      String
+
+  lecturerId String
+  lecturer   User   @relation("ClassSessionLecturer", fields: [lecturerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendanceRecords AttendanceRecord[]
+
+  @@index([dayOfWeek, room])
+  @@index([dayOfWeek, lecturerId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+// One row per student per real calendar-date occurrence of a recurring ClassSession — the
+// session itself has no date, only a weekly dayOfWeek, so occurrenceDate is what pins this
+// record to an actual class meeting. occurrenceDate is validated in the action layer to
+// actually fall on the session's dayOfWeek; the schema doesn't enforce that (same division
+// of concerns as ClassSession's own overlap-conflict check).
+model AttendanceRecord {
+  id             String           @id @default(cuid())
+  classSessionId String
+  classSession   ClassSession     @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  occurrenceDate DateTime
+  studentId      String
+  student        User             @relation("AttendanceStudent", fields: [studentId], references: [id])
+  status         AttendanceStatus
+  markedById     String
+  markedBy       User             @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
+  markedAt       DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([classSessionId, occurrenceDate, studentId])
+  @@index([studentId])
 }
 
 // ---------- WEEKLY CONTENT ----------
@@ -326,6 +454,11 @@ model ContentItem {
   // assignment fields — dueDate/isAssignment orthogonal to type; grading lives on Submission
   isAssignment Boolean   @default(false)
   dueDate      DateTime?
+
+  // Optional — an assignment with no category is excluded from the module's weighted
+  // grade (shown informationally in the Grade Book), not an error.
+  assessmentCategoryId String?
+  assessmentCategory   AssessmentCategory? @relation(fields: [assessmentCategoryId], references: [id], onDelete: SetNull)
 
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])
@@ -385,13 +518,19 @@ model Quiz {
   scheduledById  String?
   scheduledBy    User?      @relation("QuizScheduledBy", fields: [scheduledById], references: [id], onDelete: SetNull)
 
+  // Optional — a quiz with no category is excluded from the module's weighted grade.
+  assessmentCategoryId String?
+  assessmentCategory   AssessmentCategory? @relation(fields: [assessmentCategoryId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User     @relation("QuizCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  questions QuizQuestion[]
-  attempts  QuizAttempt[]
+  questions        QuizQuestion[]
+  attempts         QuizAttempt[]
+  rubricCriteria   RubricCriterion[]
+  learningOutcomes LearningOutcome[]
 
   @@index([moduleId, status])
 }
@@ -436,8 +575,14 @@ model QuizAttempt {
   // Populated together at submit time — auto-graded, no separate "gradedAt" step.
   pointsEarned  Int?
   totalPoints   Int?
+  // When the score/answer breakdown becomes visible to the student. Set immediately
+  // at submit time for quizzes with no ESSAY questions (nothing left to grade). For
+  // quizzes containing an ESSAY question, stays null until the lecturer explicitly
+  // publishes via publishAttemptResults, once every essay answer has a pointsAwarded.
+  resultsPublishedAt DateTime?
 
-  answers QuizAnswer[]
+  answers      QuizAnswer[]
+  rubricScores RubricScore[]
 
   @@unique([quizId, studentId, attemptNumber])
   @@index([quizId, studentId])
@@ -460,6 +605,88 @@ model QuizAnswer {
   pointsAwarded    Int?
 
   @@unique([attemptId, questionId])
+}
+
+// A practical/hands-on assessment's scoring criteria (e.g. "Technique" /10, "Safety" /5).
+// Only meaningful for Quiz.kind === PRACTICAL — a practical quiz has zero QuizQuestion rows;
+// the whole attempt is scored against these criteria instead of individual questions.
+model RubricCriterion {
+  id         String   @id @default(cuid())
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  name       String
+  maxPoints  Int
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  scores RubricScore[]
+
+  @@index([quizId])
+}
+
+model RubricScore {
+  id            String          @id @default(cuid())
+  criterionId   String
+  criterion     RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  attemptId     String
+  attempt       QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  pointsAwarded Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([criterionId, attemptId])
+}
+
+model LearningOutcome {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  code        String // e.g. "LO1"
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quizzes Quiz[] // implicit many-to-many — a quiz can align to several outcomes and vice versa
+
+  @@unique([moduleId, code])
+}
+
+// One row per module, mutable toggle (not a full multi-cycle audit log — locking/unlocking a
+// module's marks is expected to be rare, so tracking only the most recent lock/unlock action
+// is a deliberate scope decision, not an oversight). Locked iff the row exists and
+// unlockedAt is null.
+model ModuleGradeLock {
+  id           String    @id @default(cuid())
+  moduleId     String    @unique
+  module       Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lockedAt     DateTime  @default(now())
+  lockedById   String
+  lockedBy     User      @relation("ModuleGradeLockedBy", fields: [lockedById], references: [id])
+  unlockedAt   DateTime?
+  unlockedById String?
+  unlockedBy   User?     @relation("ModuleGradeUnlockedBy", fields: [unlockedById], references: [id], onDelete: SetNull)
+}
+
+// A module's assessment weighting scheme (e.g. "Assignments" 40%, "Quizzes" 30%, "Final
+// Exam" 30%). Weights summing to 100% across a module is enforced in the action layer, not
+// here — an aggregate constraint across sibling rows can't be a single-row @@unique, same
+// division of concerns as ClassSession's overlap check and AcademicYear.isActive. A content
+// item / quiz with no category is simply excluded from the weighted grade calculation.
+model AssessmentCategory {
+  id            String   @id @default(cuid())
+  moduleId      String
+  module        Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  name          String
+  weightPercent Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contentItems ContentItem[]
+  quizzes      Quiz[]
+
+  @@unique([moduleId, name])
+  @@index([moduleId])
 }
 
 // ---------- ANNOUNCEMENTS ----------
@@ -585,7 +812,20 @@ model PaymentRecord {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  invoice Invoice?
+
   @@index([verificationStatus])
+}
+
+// Generated automatically the moment a payment is verified — not user-initiated, so there's
+// no create/edit form. One invoice per payment record.
+model Invoice {
+  id              String        @id @default(cuid())
+  paymentRecordId String        @unique
+  paymentRecord   PaymentRecord @relation(fields: [paymentRecordId], references: [id], onDelete: Cascade)
+  invoiceNumber   String        @unique
+  pdfUrl          String
+  issuedAt        DateTime      @default(now())
 }
 
 model Enrollment {
@@ -599,6 +839,29 @@ model Enrollment {
   enrolledAt     DateTime         @default(now())
 
   @@unique([studentId, moduleId])
+}
+
+// ---------- CERTIFICATES ----------
+// Manually issued by Examination Unit staff (issueCertificate) — no auto-trigger off
+// enrollment/module completion. Per-module, not per-program: Program has no direct
+// AcademicYear/Semester of its own (only reachable via Module), so a whole-program
+// certificate would need to aggregate across every module a student completed —
+// deferred; add a Certificate.kind later if that's wanted.
+
+model Certificate {
+  id               String   @id @default(cuid())
+  studentId        String
+  student          User     @relation("CertificateStudent", fields: [studentId], references: [id])
+  moduleId         String
+  module           Module   @relation(fields: [moduleId], references: [id])
+  verificationCode String   @unique
+  fileUrl          String
+  issuedById       String
+  issuedBy         User     @relation("CertificateIssuedBy", fields: [issuedById], references: [id])
+  issuedAt         DateTime @default(now())
+
+  @@unique([studentId, moduleId])
+  @@index([verificationCode])
 }
 
 // ---------- CALENDAR ----------
@@ -626,13 +889,32 @@ model CalendarEvent {
 // ---------- NOTIFICATION AUDIT ----------
 
 model NotificationLog {
-  id              String             @id @default(cuid())
+  id              String              @id @default(cuid())
   type            String // e.g. "REGISTRATION_APPROVED"
-  recipientEmail  String
+  channel         NotificationChannel @default(EMAIL)
+  recipient       String // email address or phone number, depending on channel
   recipientUserId String?
-  subject         String
+  subject         String? // meaningful for EMAIL only; null for SMS/WhatsApp
+  body            String? @db.Text // the actual message content sent, for audit
   status          NotificationStatus
   error           String?
   meta            Json?
-  sentAt          DateTime           @default(now())
+  sentAt          DateTime            @default(now())
+
+  @@index([recipientUserId])
+  @@index([channel, sentAt])
+}
+
+// Per-item read state for the in-app notification bell (student-feed.ts). `key`
+// matches the synthesized id of a NotificationItem (e.g. "quiz-<attemptId>") — a
+// row's presence means that specific notification has been opened, not a "checked
+// up to this timestamp" cutoff, so unread state survives per-item across sessions.
+model NotificationRead {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key    String
+  readAt DateTime @default(now())
+
+  @@unique([userId, key])
 }

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
+import { isModuleGradesLocked, MODULE_GRADES_LOCKED_MESSAGE } from "@/lib/grades/lock";
 import { GradeRow } from "@/components/lecturer/grade-row";
 
 export default async function LecturerAssignmentGradingPage({
@@ -22,13 +23,14 @@ export default async function LecturerAssignmentGradingPage({
   });
   if (!contentItem || !contentItem.isAssignment || contentItem.week.moduleId !== moduleId) notFound();
 
-  const [enrollments, submissions] = await Promise.all([
+  const [enrollments, submissions, locked] = await Promise.all([
     prisma.enrollment.findMany({
       where: { moduleId, status: "ACTIVE" },
       include: { student: true },
       orderBy: { student: { firstName: "asc" } },
     }),
     prisma.submission.findMany({ where: { contentItemId } }),
+    isModuleGradesLocked(moduleId),
   ]);
 
   const submissionByStudentId = new Map(submissions.map((submission) => [submission.studentId, submission]));
@@ -41,6 +43,11 @@ export default async function LecturerAssignmentGradingPage({
           {contentItem.dueDate ? `Due ${contentItem.dueDate.toLocaleDateString()}` : "No due date"} ·{" "}
           {submissions.length} / {enrollments.length} submitted
         </p>
+        {locked && (
+          <p className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {MODULE_GRADES_LOCKED_MESSAGE}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

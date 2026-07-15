@@ -6,9 +6,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { assertLecturerOwnsModule } from "@/lib/auth/ownership";
+import { isModuleGradesLocked, MODULE_GRADES_LOCKED_MESSAGE } from "@/lib/grades/lock";
 import { quizSchema } from "@/lib/validation/quiz.schema";
 import { questionSchema, buildQuestionInput, type QuestionInput } from "@/lib/validation/quiz-question.schema";
 import { essayGradeSchema } from "@/lib/validation/essay-grade.schema";
+import { notifyUsers } from "@/lib/notifications";
+import { quizResultsPublishedTemplate } from "@/lib/notifications/templates/communication";
 import type { ActionState } from "@/lib/actions/action-state";
 
 function buildOptionsData(data: QuestionInput) {
@@ -28,7 +31,7 @@ function buildOptionsData(data: QuestionInput) {
   return [];
 }
 
-async function getOwnedQuiz(quizId: string, lecturerId: string) {
+export async function getOwnedQuiz(quizId: string, lecturerId: string) {
   const quiz = await prisma.quiz.findUniqueOrThrow({ where: { id: quizId } });
   await assertLecturerOwnsModule(quiz.moduleId, lecturerId);
   return quiz;
@@ -164,12 +167,19 @@ export async function deleteQuestion(questionId: string, quizId: string) {
 export async function publishQuiz(quizId: string) {
   const lecturer = await requireRole(["LECTURER"]);
   const quiz = await getOwnedQuiz(quizId, lecturer.id);
-  if (quiz.kind !== "QUIZ" || quiz.status !== "DRAFT") {
+  if (quiz.kind === "EXAM" || quiz.status !== "DRAFT") {
     throw new Error("This quiz can't be published from its current state.");
   }
-  const questionCount = await prisma.quizQuestion.count({ where: { quizId } });
-  if (questionCount === 0) {
-    throw new Error("Add at least one question before publishing.");
+  if (quiz.kind === "PRACTICAL") {
+    const criterionCount = await prisma.rubricCriterion.count({ where: { quizId } });
+    if (criterionCount === 0) {
+      throw new Error("Add at least one rubric criterion before publishing.");
+    }
+  } else {
+    const questionCount = await prisma.quizQuestion.count({ where: { quizId } });
+    if (questionCount === 0) {
+      throw new Error("Add at least one question before publishing.");
+    }
   }
 
   await prisma.quiz.update({ where: { id: quizId }, data: { status: "PUBLISHED" } });
@@ -220,6 +230,9 @@ export async function gradeEssayAnswer(
 ): Promise<ActionState> {
   const lecturer = await requireRole(["LECTURER"]);
   const quiz = await getOwnedQuiz(quizId, lecturer.id);
+  if (await isModuleGradesLocked(quiz.moduleId)) {
+    return { error: MODULE_GRADES_LOCKED_MESSAGE };
+  }
 
   const answer = await prisma.quizAnswer.findUniqueOrThrow({
     where: { id: answerId },
@@ -249,4 +262,46 @@ export async function gradeEssayAnswer(
   revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes/${quizId}/results`);
   revalidatePath(`/student/modules/${quiz.moduleId}/quizzes/${quizId}/attempt/${answer.attemptId}`);
   return undefined;
+}
+
+export async function publishAttemptResults(attemptId: string, quizId: string) {
+  const lecturer = await requireRole(["LECTURER"]);
+  const quiz = await getOwnedQuiz(quizId, lecturer.id);
+  if (await isModuleGradesLocked(quiz.moduleId)) {
+    throw new Error(MODULE_GRADES_LOCKED_MESSAGE);
+  }
+
+  const attempt = await prisma.quizAttempt.findUniqueOrThrow({ where: { id: attemptId } });
+  if (attempt.quizId !== quizId || !attempt.submittedAt) {
+    throw new Error("This attempt can't be published.");
+  }
+  if (attempt.resultsPublishedAt) return;
+
+  const ungradedCount = await prisma.quizAnswer.count({
+    where: { attemptId, pointsAwarded: null, question: { type: "ESSAY" } },
+  });
+  if (ungradedCount > 0) {
+    throw new Error("Grade every essay answer before publishing this attempt's results.");
+  }
+
+  const published = await prisma.quizAttempt.update({
+    where: { id: attemptId },
+    data: { resultsPublishedAt: new Date() },
+  });
+  const module_ = await prisma.module.findUniqueOrThrow({ where: { id: quiz.moduleId }, select: { code: true } });
+
+  await notifyUsers(
+    [published.studentId],
+    "QUIZ_RESULTS_PUBLISHED",
+    quizResultsPublishedTemplate({
+      quizTitle: quiz.title,
+      moduleCode: module_.code,
+      pointsEarned: published.pointsEarned ?? undefined,
+      totalPoints: published.totalPoints ?? undefined,
+    })
+  );
+
+  revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes/${quizId}/results`);
+  revalidatePath(`/student/modules/${quiz.moduleId}/quizzes/${quizId}`);
+  revalidatePath(`/student/modules/${quiz.moduleId}/quizzes/${quizId}/attempt/${attemptId}`);
 }

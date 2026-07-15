@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone } from "lucide-react";
+import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck } from "lucide-react";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
+import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ function useLecturerModuleNavItems(pathname: string): NavItem[] {
     { href: `/lecturer/modules/${moduleId}/quizzes`, label: "Quizzes", icon: <ListChecks className="size-4" /> },
     { href: `/lecturer/modules/${moduleId}/discussions`, label: "Discussions", icon: <MessagesSquare className="size-4" /> },
     { href: `/lecturer/modules/${moduleId}/announcements`, label: "Announcements", icon: <Megaphone className="size-4" /> },
+    { href: `/lecturer/modules/${moduleId}/attendance`, label: "Attendance", icon: <CalendarCheck className="size-4" /> },
+    { href: `/lecturer/modules/${moduleId}/gradebook`, label: "Grade Book", icon: <ClipboardCheck className="size-4" /> },
   ];
 }
 
@@ -72,6 +75,7 @@ export function DashboardShell({
   userName,
   userEmail,
   profileHref,
+  notifications,
   contentBackgroundClassName,
   children,
 }: {
@@ -80,6 +84,7 @@ export function DashboardShell({
   userName: string;
   userEmail: string;
   profileHref?: string;
+  notifications?: NotificationItem[];
   contentBackgroundClassName?: string;
   children: React.ReactNode;
 }) {
@@ -154,6 +159,7 @@ export function DashboardShell({
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
+              {notifications && <NotificationBell items={notifications} />}
               {profileHref ? (
                 <ProfileMenu userName={userName} userEmail={userEmail} profileHref={profileHref} />
               ) : (

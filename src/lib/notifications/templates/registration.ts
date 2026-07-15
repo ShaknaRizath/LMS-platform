@@ -20,12 +20,13 @@ export function registrationRejectedTemplate(params: { firstName: string; reason
   };
 }
 
-export function paymentVerifiedTemplate(params: { firstName: string }) {
+export function paymentVerifiedTemplate(params: { firstName: string; invoiceUrl?: string }) {
   return {
     subject: "Your payment has been verified",
     html: `
       <p>Hi ${params.firstName},</p>
       <p>Your semester fee payment has been verified. Your registration is now awaiting final approval.</p>
+      ${params.invoiceUrl ? `<p>Your invoice is ready: <a href="${params.invoiceUrl}">${params.invoiceUrl}</a></p>` : ""}
     `,
   };
 }

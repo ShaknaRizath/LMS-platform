@@ -1,7 +1,7 @@
 import "server-only";
-import { unlink } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { SignedUploadParams, StorageAdapter } from "@/lib/storage/storage.interface";
+import type { SignedUploadParams, StorageAdapter, UploadedFile } from "@/lib/storage/storage.interface";
 
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
 
@@ -15,6 +15,23 @@ export class LocalStorageAdapter implements StorageAdapter {
       url: "/api/uploads/local",
       fields: { folder },
     };
+  }
+
+  async uploadBuffer({
+    folder,
+    filename,
+    buffer,
+  }: {
+    folder: string;
+    filename: string;
+    buffer: Buffer;
+    contentType: string;
+  }): Promise<UploadedFile> {
+    const destDir = path.join(UPLOADS_ROOT, folder);
+    await mkdir(destDir, { recursive: true });
+    await writeFile(path.join(destDir, filename), buffer);
+    const publicId = `${folder}/${filename}`;
+    return { url: this.getFileUrl(publicId), publicId };
   }
 
   async deleteFile(publicId: string): Promise<void> {

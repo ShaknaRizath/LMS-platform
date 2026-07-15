@@ -34,9 +34,11 @@ import { deleteWeek } from "@/lib/actions/lecturer/week.actions";
 export function WeekPanel({
   week,
   moduleId,
+  categories = [],
 }: {
   week: { id: string; weekNumber: number; title: string | null; contentItems: ContentItemData[] };
   moduleId: string;
+  categories?: { id: string; name: string }[];
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -67,6 +69,7 @@ export function WeekPanel({
                 canMoveDown={index < week.contentItems.length - 1}
                 onMoveUp={() => move(index, -1)}
                 onMoveDown={() => move(index, 1)}
+                categories={categories}
               />
             ))}
           </div>
@@ -92,6 +95,7 @@ export function WeekPanel({
                 action={createContentItem.bind(null, week.id, moduleId)}
                 submitLabel="Add content"
                 onSuccess={() => setAddOpen(false)}
+                categories={categories}
               />
             </DialogContent>
           </Dialog>

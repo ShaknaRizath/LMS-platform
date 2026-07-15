@@ -1,9 +1,10 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Inbox } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 const navItems: NavItem[] = [
   { href: "/marketing", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
+  { href: "/marketing/applications", label: "Applications", icon: <Inbox className="size-4" /> },
 ];
 
 export default async function MarketingOfficerLayout({

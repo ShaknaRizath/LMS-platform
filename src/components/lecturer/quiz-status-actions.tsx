@@ -8,23 +8,23 @@ export function QuizStatusActions({
   quizId,
   kind,
   status,
-  hasQuestions,
+  canPublish,
 }: {
   quizId: string;
-  kind: "QUIZ" | "EXAM";
+  kind: "QUIZ" | "EXAM" | "PRACTICAL";
   status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CLOSED";
-  hasQuestions: boolean;
+  canPublish: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
-  if (status === "DRAFT" && kind === "QUIZ") {
+  if (status === "DRAFT" && kind !== "EXAM") {
     return (
       <Button
         type="button"
-        disabled={pending || !hasQuestions}
+        disabled={pending || !canPublish}
         onClick={() => startTransition(() => publishQuiz(quizId))}
       >
-        {pending ? "Publishing..." : "Publish quiz"}
+        {pending ? "Publishing..." : kind === "PRACTICAL" ? "Publish practical assessment" : "Publish quiz"}
       </Button>
     );
   }
@@ -33,7 +33,7 @@ export function QuizStatusActions({
     return (
       <Button
         type="button"
-        disabled={pending || !hasQuestions}
+        disabled={pending || !canPublish}
         onClick={() => startTransition(() => submitExamForScheduling(quizId))}
       >
         {pending ? "Submitting..." : "Submit for scheduling"}

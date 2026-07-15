@@ -62,10 +62,25 @@ export default async function StudentQuizAttemptPage({
     );
   }
 
+  if (!attempt.resultsPublishedAt) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{attempt.quiz.title}</h1>
+          <p className="text-muted-foreground">Attempt {attempt.attemptNumber}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm font-medium">Submitted — awaiting grading</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your answers have been recorded. Your lecturer is still grading this attempt's essay questions —
+            your score will appear here once they publish the results.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const answerByQuestionId = new Map(attempt.answers.map((answer) => [answer.questionId, answer]));
-  const hasUngradedEssay = attempt.quiz.questions.some(
-    (question) => question.type === "ESSAY" && answerByQuestionId.get(question.id)?.pointsAwarded == null
-  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,7 +93,6 @@ export default async function StudentQuizAttemptPage({
                 (attempt.pointsEarned / attempt.totalPoints) * 100
               )}%)`
             : "—"}
-          {hasUngradedEssay && " · essay answers still being graded"}
         </p>
       </div>
 

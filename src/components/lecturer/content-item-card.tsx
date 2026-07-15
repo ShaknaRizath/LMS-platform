@@ -69,6 +69,7 @@ export type ContentItemData = {
   richTextHtml: string | null;
   fileUrl: string | null;
   fileName: string | null;
+  assessmentCategoryId: string | null;
 };
 
 export function ContentItemCard({
@@ -78,6 +79,7 @@ export function ContentItemCard({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  categories = [],
 }: {
   item: ContentItemData;
   moduleId: string;
@@ -85,6 +87,7 @@ export function ContentItemCard({
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  categories?: { id: string; name: string }[];
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -162,6 +165,7 @@ export function ContentItemCard({
               defaultValues={item}
               submitLabel="Save changes"
               onSuccess={() => setEditOpen(false)}
+              categories={categories}
             />
           </DialogContent>
         </Dialog>

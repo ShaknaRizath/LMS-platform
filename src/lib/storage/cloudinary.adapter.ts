@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import type {
   SignedUploadParams,
   StorageAdapter,
+  UploadedFile,
   UploadResourceType,
 } from "@/lib/storage/storage.interface";
 
@@ -36,6 +37,26 @@ export class CloudinaryAdapter implements StorageAdapter {
         folder,
       },
     };
+  }
+
+  async uploadBuffer({
+    folder,
+    filename,
+    buffer,
+    contentType,
+  }: {
+    folder: string;
+    filename: string;
+    buffer: Buffer;
+    contentType: string;
+  }): Promise<UploadedFile> {
+    const dataUri = `data:${contentType};base64,${buffer.toString("base64")}`;
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder,
+      public_id: filename,
+      resource_type: "raw",
+    });
+    return { url: result.secure_url, publicId: result.public_id };
   }
 
   async deleteFile(publicId: string): Promise<void> {

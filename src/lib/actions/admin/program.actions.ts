@@ -92,7 +92,7 @@ export async function setProgramCurriculumFee(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN", "FINANCE"]);
 
   const parsed = programCurriculumFeeSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -106,5 +106,6 @@ export async function setProgramCurriculumFee(
   });
 
   revalidatePath(`/admin/programs/${programId}`);
+  revalidatePath(`/finance/programs/${programId}`);
   return undefined;
 }

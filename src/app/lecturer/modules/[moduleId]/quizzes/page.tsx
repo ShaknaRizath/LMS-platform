@@ -13,6 +13,7 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 import { CreateQuizForm } from "@/components/lecturer/create-quiz-form";
+import { LearningOutcomesManager } from "@/components/lecturer/learning-outcomes-manager";
 import { createQuiz } from "@/lib/actions/lecturer/quiz.actions";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -20,6 +21,12 @@ const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
   CLOSED: "Closed",
+};
+
+const KIND_LABELS: Record<string, string> = {
+  QUIZ: "Quiz",
+  EXAM: "Exam",
+  PRACTICAL: "Practical",
 };
 
 export default async function LecturerQuizzesPage({
@@ -35,11 +42,15 @@ export default async function LecturerQuizzesPage({
   });
   if (!assignment) notFound();
 
-  const quizzes = await prisma.quiz.findMany({
-    where: { moduleId },
-    include: { _count: { select: { questions: true, attempts: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [quizzes, categories, outcomes] = await Promise.all([
+    prisma.quiz.findMany({
+      where: { moduleId },
+      include: { _count: { select: { questions: true, attempts: true, rubricCriteria: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.assessmentCategory.findMany({ where: { moduleId }, orderBy: { name: "asc" } }),
+    prisma.learningOutcome.findMany({ where: { moduleId }, orderBy: { code: "asc" } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,14 +76,16 @@ export default async function LecturerQuizzesPage({
                     <div>
                       <div className="flex items-center gap-2">
                         <CardTitle>{quiz.title}</CardTitle>
-                        <Badge variant="outline">{quiz.kind === "EXAM" ? "Exam" : "Quiz"}</Badge>
+                        <Badge variant="outline">{KIND_LABELS[quiz.kind]}</Badge>
                         <Badge variant={quiz.status === "PUBLISHED" || quiz.status === "SCHEDULED" ? "default" : "secondary"}>
                           {STATUS_LABELS[quiz.status]}
                         </Badge>
                       </div>
                       <CardDescription>
-                        {quiz._count.questions} question{quiz._count.questions === 1 ? "" : "s"} ·{" "}
-                        {quiz._count.attempts} attempt{quiz._count.attempts === 1 ? "" : "s"}
+                        {quiz.kind === "PRACTICAL"
+                          ? `${quiz._count.rubricCriteria} criteri${quiz._count.rubricCriteria === 1 ? "on" : "a"}`
+                          : `${quiz._count.questions} question${quiz._count.questions === 1 ? "" : "s"}`}{" "}
+                        · {quiz._count.attempts} attempt{quiz._count.attempts === 1 ? "" : "s"}
                       </CardDescription>
                     </div>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
@@ -84,7 +97,9 @@ export default async function LecturerQuizzesPage({
         </div>
       )}
 
-      <CreateQuizForm action={createQuiz.bind(null, moduleId)} />
+      <CreateQuizForm action={createQuiz.bind(null, moduleId)} categories={categories} />
+
+      <LearningOutcomesManager moduleId={moduleId} outcomes={outcomes} />
     </div>
   );
 }

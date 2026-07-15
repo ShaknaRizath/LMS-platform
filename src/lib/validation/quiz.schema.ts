@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const quizSchema = z.object({
-  kind: z.enum(["QUIZ", "EXAM"], { error: "Select a type." }),
+  kind: z.enum(["QUIZ", "EXAM", "PRACTICAL"], { error: "Select a type." }),
   title: z.string().min(1, { error: "Enter a title." }),
   description: z.string().optional(),
   timeLimitMinutes: z
@@ -15,6 +15,12 @@ export const quizSchema = z.object({
     .number({ error: "Enter the maximum number of attempts." })
     .int()
     .min(1, { error: "Attempts must be at least 1." }),
+  // Transforms to null (not undefined) so clearing the category on an edit actually
+  // updates the field to null instead of Prisma silently skipping an undefined key.
+  assessmentCategoryId: z
+    .string()
+    .optional()
+    .transform((value) => (value && value !== "NONE" ? value : null)),
 });
 
 export type QuizInput = z.infer<typeof quizSchema>;

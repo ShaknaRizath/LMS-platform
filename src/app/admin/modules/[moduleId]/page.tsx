@@ -7,6 +7,8 @@ import { ModuleForm } from "@/components/admin/module-form";
 import { AssignLecturerForm } from "@/components/admin/assign-lecturer-form";
 import { DetailSummary } from "@/components/admin/detail-summary";
 import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import { TimetableCard } from "@/components/scheduling/timetable-card";
+import { AssessmentCategoryManager } from "@/components/lecturer/assessment-category-manager";
 import {
   updateModule,
   unassignLecturer,
@@ -21,10 +23,13 @@ export default async function ModuleDetailPage({
 }) {
   const { moduleId } = await params;
 
-  const [module_, programs, semesters, lecturers] = await Promise.all([
+  const [module_, programs, semesters, lecturers, categories] = await Promise.all([
     prisma.module.findUnique({
       where: { id: moduleId },
-      include: { lecturerAssignments: { include: { lecturer: true } } },
+      include: {
+        lecturerAssignments: { include: { lecturer: true } },
+        classSessions: { include: { lecturer: true }, orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+      },
     }),
     prisma.program.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.semester.findMany({
@@ -32,6 +37,7 @@ export default async function ModuleDetailPage({
       include: { academicYear: true },
     }),
     prisma.user.findMany({ where: { role: "LECTURER", isActive: true }, orderBy: { firstName: "asc" } }),
+    prisma.assessmentCategory.findMany({ where: { moduleId }, orderBy: { name: "asc" } }),
   ]);
 
   if (!module_) notFound();
@@ -141,6 +147,14 @@ export default async function ModuleDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <TimetableCard
+        moduleId={module_.id}
+        sessions={module_.classSessions}
+        lecturers={module_.lecturerAssignments.map((a) => a.lecturer)}
+      />
+
+      <AssessmentCategoryManager moduleId={module_.id} categories={categories} />
     </div>
   );
 }

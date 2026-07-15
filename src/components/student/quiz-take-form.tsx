@@ -30,13 +30,13 @@ export function QuizTakeForm({
     <form action={formAction} className="flex flex-col gap-6">
       {deadline && <QuizTimer deadline={deadline} />}
       {questions.map((question, index) => (
-        <fieldset key={question.id} className="rounded-lg border border-border bg-card p-4">
-          <legend className="px-1 text-sm font-medium">
+        <div key={question.id} className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm font-medium">
             {index + 1}. {question.prompt}{" "}
             <span className="text-xs text-muted-foreground">
               ({question.points} pt{question.points === 1 ? "" : "s"})
             </span>
-          </legend>
+          </p>
           {question.type === "ESSAY" ? (
             <Textarea
               name={`question_${question.id}`}
@@ -59,7 +59,7 @@ export function QuizTakeForm({
               ))}
             </div>
           )}
-        </fieldset>
+        </div>
       ))}
       {state?.error && <FieldError>{state.error}</FieldError>}
       <Button type="submit" disabled={pending} className="w-fit">
