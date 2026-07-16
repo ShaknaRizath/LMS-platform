@@ -20,6 +20,7 @@ export default async function MarketingOfficerLayout({
       navItems={navItems}
       userName={user.name ?? user.email ?? "Marketing Officer"}
       userEmail={user.email ?? ""}
+      leaveHref="/staff/leave"
     >
       {children}
     </DashboardShell>

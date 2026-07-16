@@ -15,7 +15,7 @@ import {
 export default async function ExaminationUnitExamsPage() {
   await requireRole(["EXAMINATION_UNIT"]);
 
-  const [pending, scheduled] = await Promise.all([
+  const [pending, scheduled, invigilators] = await Promise.all([
     prisma.quiz.findMany({
       where: { kind: "EXAM", status: "DRAFT", submittedForSchedulingAt: { not: null } },
       include: { module: true, createdBy: true },
@@ -23,9 +23,10 @@ export default async function ExaminationUnitExamsPage() {
     }),
     prisma.quiz.findMany({
       where: { kind: "EXAM", status: { in: ["SCHEDULED", "CLOSED"] } },
-      include: { module: true },
+      include: { module: true, invigilator: true },
       orderBy: { availableFrom: "desc" },
     }),
+    prisma.user.findMany({ where: { role: "LECTURER" }, orderBy: { firstName: "asc" } }),
   ]);
 
   return (
@@ -57,7 +58,11 @@ export default async function ExaminationUnitExamsPage() {
                   {quiz.createdBy.lastName}
                 </p>
                 <div className="mt-3">
-                  <ScheduleExamForm quizId={quiz.id} action={scheduleExam.bind(null, quiz.id)} />
+                  <ScheduleExamForm
+                    quizId={quiz.id}
+                    invigilators={invigilators}
+                    action={scheduleExam.bind(null, quiz.id)}
+                  />
                 </div>
               </div>
             ))}
@@ -81,6 +86,10 @@ export default async function ExaminationUnitExamsPage() {
                   <p className="text-xs text-muted-foreground">
                     {quiz.module.code} — {quiz.module.title} ·{" "}
                     {quiz.availableFrom?.toLocaleString()} – {quiz.availableUntil?.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {quiz.venue ?? "—"} · Invigilator:{" "}
+                    {quiz.invigilator ? `${quiz.invigilator.firstName} ${quiz.invigilator.lastName}` : "—"}
                   </p>
                 </div>
                 <Badge variant={quiz.status === "SCHEDULED" ? "default" : "secondary"}>

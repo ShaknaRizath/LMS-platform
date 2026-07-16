@@ -36,10 +36,10 @@ export function DiscussionThreadView({
   moderationActions,
 }: {
   thread: { id: string; title: string; body: string; authorName: string; createdAt: Date; isLocked: boolean };
-  moduleId: string;
+  moduleId: string | null;
   posts: PostSummary[];
   replyAction: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
-  deletePostAction: (postId: string, threadId: string, moduleId: string) => Promise<void>;
+  deletePostAction: (postId: string, threadId: string, moduleId: string | null) => Promise<void>;
   moderationActions?: React.ReactNode;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(replyAction, undefined);

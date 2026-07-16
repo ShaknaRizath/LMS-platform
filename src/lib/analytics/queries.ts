@@ -147,6 +147,8 @@ export async function getTopModulesByDiscussionActivity(range: DateRange) {
 
   const countByModuleId = new Map<string, number>();
   for (const post of posts) {
+    // Institution-wide (non-module-scoped) forum posts have no module to attribute to.
+    if (!post.thread.moduleId) continue;
     countByModuleId.set(post.thread.moduleId, (countByModuleId.get(post.thread.moduleId) ?? 0) + 1);
   }
   if (countByModuleId.size === 0) return [];

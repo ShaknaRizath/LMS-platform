@@ -2,10 +2,14 @@ import { prisma } from "@/lib/db/prisma";
 import { StatCard } from "@/components/shared/stat-card";
 
 export default async function HrOfficerDashboardPage() {
-  const [totalStaff, totalLecturers, inactiveAccounts] = await Promise.all([
+  const now = new Date();
+  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const [totalStaff, totalLecturers, inactiveAccounts, contractsExpiring] = await Promise.all([
     prisma.user.count({ where: { role: { not: "STUDENT" }, isActive: true } }),
     prisma.user.count({ where: { role: "LECTURER", isActive: true } }),
     prisma.user.count({ where: { isActive: false } }),
+    prisma.user.count({ where: { contractEndDate: { gte: now, lte: in30Days } } }),
   ]);
 
   return (
@@ -19,7 +23,7 @@ export default async function HrOfficerDashboardPage() {
         <StatCard label="Total staff" value={totalStaff} hint="Active non-student accounts" />
         <StatCard label="Total lecturers" value={totalLecturers} />
         <StatCard label="Inactive accounts" value={inactiveAccounts} />
-        <StatCard label="Contracts expiring" comingSoon />
+        <StatCard label="Contracts expiring" value={contractsExpiring} hint="Within 30 days" />
         <StatCard label="Payroll sync" comingSoon />
       </div>
     </div>

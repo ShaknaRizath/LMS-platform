@@ -2,12 +2,14 @@ import { prisma } from "@/lib/db/prisma";
 import { StatCard } from "@/components/shared/stat-card";
 
 export default async function AcademicDirectorDashboardPage() {
-  const [activePrograms, activeModules, activeLecturers, modulesMissingLecturer] = await Promise.all([
-    prisma.program.count({ where: { isActive: true } }),
-    prisma.module.count({ where: { isActive: true } }),
-    prisma.user.count({ where: { role: "LECTURER", isActive: true } }),
-    prisma.module.count({ where: { isActive: true, lecturerAssignments: { none: {} } } }),
-  ]);
+  const [activePrograms, activeModules, activeLecturers, modulesMissingLecturer, openDisciplineCases] =
+    await Promise.all([
+      prisma.program.count({ where: { isActive: true } }),
+      prisma.module.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: "LECTURER", isActive: true } }),
+      prisma.module.count({ where: { isActive: true, lecturerAssignments: { none: {} } } }),
+      prisma.disciplineCase.count({ where: { status: "OPEN" } }),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -16,7 +18,7 @@ export default async function AcademicDirectorDashboardPage() {
         <p className="text-muted-foreground">Programs, curriculum standards, and quality assurance.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Active programs" value={activePrograms} />
         <StatCard label="Active modules" value={activeModules} />
         <StatCard label="Active lecturers" value={activeLecturers} />
@@ -25,6 +27,7 @@ export default async function AcademicDirectorDashboardPage() {
           value={modulesMissingLecturer}
           hint="Active modules with no lecturer assigned"
         />
+        <StatCard label="Open discipline cases" value={openDisciplineCases} />
       </div>
     </div>
   );

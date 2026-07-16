@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
+import QRCode from "qrcode";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { storage } from "@/lib/storage";
@@ -34,6 +35,8 @@ export async function issueCertificate(
 
   const verificationCode = randomBytes(10).toString("hex").toUpperCase();
   const issuedAt = new Date();
+  const verifyUrl = `${process.env.AUTH_URL}/verify/${verificationCode}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(verifyUrl);
 
   const pdfBuffer = await generateCertificatePdf({
     studentName: `${student.firstName} ${student.lastName}`,
@@ -45,6 +48,7 @@ export async function issueCertificate(
     issuedAt,
     verificationCode,
     issuedByName: examUnit.name ?? examUnit.email ?? "Examination Unit",
+    qrCodeDataUrl,
   });
 
   const uploaded = await storage.uploadBuffer({

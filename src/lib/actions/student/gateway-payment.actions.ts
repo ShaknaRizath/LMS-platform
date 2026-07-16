@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { assertOwnRegistration } from "@/lib/auth/ownership";
-import { getProgramCurriculumFee } from "@/lib/fees";
+import { getEffectiveFee } from "@/lib/fees";
 import { sendNotificationEmail, getPaymentReviewers } from "@/lib/notifications";
 import {
   paymentVerifiedTemplate,
@@ -31,7 +31,7 @@ export async function initiateGatewayPayment(
   }
 
   const fee = registration.student.programId
-    ? await getProgramCurriculumFee(registration.student.programId, registration.yearLevel, registration.semester.semesterNumber)
+    ? await getEffectiveFee(student.id, registration.student.programId, registration.yearLevel, registration.semester.semesterNumber)
     : null;
   if (fee === null) {
     return { error: "No fee has been set for your program this semester yet. Contact your administrator." };

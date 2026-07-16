@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
   page: {
@@ -71,6 +71,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#374151",
   },
+  qrCode: {
+    width: 50,
+    height: 50,
+  },
 });
 
 export type CertificateData = {
@@ -83,6 +87,7 @@ export type CertificateData = {
   issuedAt: Date;
   verificationCode: string;
   issuedByName: string;
+  qrCodeDataUrl: string;
 };
 
 export function CertificateDocument(data: CertificateData) {
@@ -115,6 +120,10 @@ export function CertificateDocument(data: CertificateData) {
             <View style={styles.footerCol}>
               <Text style={styles.footerValue}>{data.verificationCode}</Text>
               <Text style={styles.footerLabel}>Verification code</Text>
+            </View>
+            <View style={styles.footerCol}>
+              <Image src={data.qrCodeDataUrl} style={styles.qrCode} />
+              <Text style={styles.footerLabel}>Scan to verify</Text>
             </View>
           </View>
         </View>

@@ -19,19 +19,22 @@ import {
 import { ClipboardCheck } from "lucide-react";
 
 export default async function ExaminationUnitDashboardPage() {
-  const [registrations, activeEnrollments, ungradedSubmissions, activeSemester, scheduledExams, certificatesIssued] =
-    await Promise.all([
-      prisma.semesterRegistration.findMany({
-        where: { status: "PENDING" },
-        include: { student: true, semester: { include: { academicYear: true } } },
-        orderBy: { submittedAt: "asc" },
-      }),
-      prisma.enrollment.count({ where: { status: "ACTIVE" } }),
-      prisma.submission.count({ where: { gradedAt: null } }),
-      prisma.semester.findFirst({ where: { status: "ACTIVE" } }),
-      prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED" } }),
-      prisma.certificate.count(),
-    ]);
+  // Sequential, not Promise.all — semesterRegistration.findMany's nested include (student,
+  // semester.academicYear) fans out into several sub-queries under Prisma 7's query
+  // interpreter on its own; combined with the other 5 queries below in one Promise.all this
+  // reproducibly exceeded the connection pool (confirmed live via a standalone script,
+  // isolated to this exact query). Same bug class as the Analytics/Grade Book Promise.all
+  // fixes — see cims_campus_lms_finance / cims_campus_lms_admissions memories.
+  const registrations = await prisma.semesterRegistration.findMany({
+    where: { status: "PENDING" },
+    include: { student: true, semester: { include: { academicYear: true } } },
+    orderBy: { submittedAt: "asc" },
+  });
+  const activeEnrollments = await prisma.enrollment.count({ where: { status: "ACTIVE" } });
+  const ungradedSubmissions = await prisma.submission.count({ where: { gradedAt: null } });
+  const activeSemester = await prisma.semester.findFirst({ where: { status: "ACTIVE" } });
+  const scheduledExams = await prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED" } });
+  const transcriptsIssued = await prisma.transcript.count();
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +48,7 @@ export default async function ExaminationUnitDashboardPage() {
         <StatCard label="Ungraded submissions" value={ungradedSubmissions} />
         <StatCard label="Active semester" value={activeSemester?.name ?? "—"} />
         <StatCard label="Scheduled exams" value={scheduledExams} />
-        <StatCard label="Transcripts issued" value={certificatesIssued} />
+        <StatCard label="Transcripts issued" value={transcriptsIssued} />
       </div>
 
       <div>

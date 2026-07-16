@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck } from "lucide-react";
+import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck, CalendarClock } from "lucide-react";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
@@ -76,6 +76,7 @@ export function DashboardShell({
   userEmail,
   profileHref,
   notifications,
+  leaveHref,
   contentBackgroundClassName,
   children,
 }: {
@@ -85,6 +86,7 @@ export function DashboardShell({
   userEmail: string;
   profileHref?: string;
   notifications?: NotificationItem[];
+  leaveHref?: string;
   contentBackgroundClassName?: string;
   children: React.ReactNode;
 }) {
@@ -159,6 +161,21 @@ export function DashboardShell({
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
+              {leaveHref && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href={leaveHref}
+                        className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      />
+                    }
+                  >
+                    <CalendarClock className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">My Leave</TooltipContent>
+                </Tooltip>
+              )}
               {notifications && <NotificationBell items={notifications} />}
               {profileHref ? (
                 <ProfileMenu userName={userName} userEmail={userEmail} profileHref={profileHref} />

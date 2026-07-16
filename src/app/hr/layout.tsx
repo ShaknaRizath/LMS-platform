@@ -1,9 +1,11 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Users, CalendarClock } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 const navItems: NavItem[] = [
   { href: "/hr", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
+  { href: "/hr/staff", label: "Staff Directory", icon: <Users className="size-4" /> },
+  { href: "/hr/leave", label: "Leave Requests", icon: <CalendarClock className="size-4" /> },
 ];
 
 export default async function HrOfficerLayout({
@@ -19,6 +21,7 @@ export default async function HrOfficerLayout({
       navItems={navItems}
       userName={user.name ?? user.email ?? "HR Officer"}
       userEmail={user.email ?? ""}
+      leaveHref="/staff/leave"
     >
       {children}
     </DashboardShell>

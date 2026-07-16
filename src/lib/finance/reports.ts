@@ -20,16 +20,47 @@ async function loadFeeMap() {
   return map;
 }
 
+// One flat query for every APPROVED scholarship (not per-registration lookups), keeping only
+// the most-recently-decided row per student — same "single bulk fetch, not N+1" discipline
+// loadFeeMap already uses, so this function stays a fixed number of queries regardless of how
+// many registrations exist (see getEffectiveFee in src/lib/fees.ts for the single-student
+// equivalent of this same discount math).
+async function loadScholarshipMap() {
+  const scholarships = await prisma.scholarship.findMany({
+    where: { status: "APPROVED" },
+    orderBy: { decidedAt: "asc" },
+  });
+  const map = new Map<string, { discountType: string; discountValue: number }>();
+  for (const scholarship of scholarships) {
+    if (scholarship.discountType === null || scholarship.discountValue === null) continue;
+    map.set(scholarship.studentId, {
+      discountType: scholarship.discountType,
+      discountValue: Number(scholarship.discountValue),
+    });
+  }
+  return map;
+}
+
+function applyScholarshipDiscount(
+  amount: number,
+  scholarship: { discountType: string; discountValue: number } | undefined
+): number {
+  if (!scholarship) return amount;
+  const discount =
+    scholarship.discountType === "PERCENTAGE" ? (amount * scholarship.discountValue) / 100 : scholarship.discountValue;
+  return Math.max(0, amount - discount);
+}
+
 /**
- * Resolves "expected" fee vs. "paid" (verified payments) per non-rejected registration.
- * One flat query for registrations + one for all curriculum fees (not per-registration
- * lookups), so this stays a fixed 2 queries regardless of how many registrations exist.
+ * Resolves "expected" fee (net of any approved scholarship) vs. "paid" (verified payments) per
+ * non-rejected registration. Flat queries only (registrations + curriculum fees + approved
+ * scholarships), so this stays a fixed 3 queries regardless of how many registrations exist.
  */
 export async function getOutstandingBalances(): Promise<{
   rows: OutstandingBalanceRow[];
   totalOutstanding: number;
 }> {
-  const [registrations, feeMap] = await Promise.all([
+  const [registrations, feeMap, scholarshipMap] = await Promise.all([
     prisma.semesterRegistration.findMany({
       where: { status: { not: "REJECTED" } },
       include: {
@@ -39,15 +70,17 @@ export async function getOutstandingBalances(): Promise<{
       },
     }),
     loadFeeMap(),
+    loadScholarshipMap(),
   ]);
 
   const rows: OutstandingBalanceRow[] = registrations.map((registration) => {
     const paid = registration.paymentRecords.reduce((sum, p) => sum + Number(p.amount), 0);
-    const expected = registration.student.programId
+    const rawExpected = registration.student.programId
       ? (feeMap.get(
           `${registration.student.programId}-${registration.yearLevel}-${registration.semester.semesterNumber}`
         ) ?? 0)
       : 0;
+    const expected = applyScholarshipDiscount(rawExpected, scholarshipMap.get(registration.studentId));
     return {
       registrationId: registration.id,
       studentName: `${registration.student.firstName} ${registration.student.lastName}`,

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentMethodPicker } from "@/components/student/payment-method-picker";
-import { getProgramCurriculumFee } from "@/lib/fees";
+import { getEffectiveFee } from "@/lib/fees";
 
 export default async function PaymentUploadPage({
   params,
@@ -19,7 +19,7 @@ export default async function PaymentUploadPage({
   });
   if (!registration || registration.studentId !== student.id) notFound();
   const fee = student.programId
-    ? await getProgramCurriculumFee(student.programId, registration.yearLevel, registration.semester.semesterNumber)
+    ? await getEffectiveFee(student.id, student.programId, registration.yearLevel, registration.semester.semesterNumber)
     : null;
 
   return (

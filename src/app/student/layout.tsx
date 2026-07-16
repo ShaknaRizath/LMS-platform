@@ -9,6 +9,9 @@ import {
   Wallet,
   Award,
   GraduationCap,
+  ScrollText,
+  HandCoins,
+  Globe,
 } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
@@ -20,11 +23,14 @@ const navItems: NavItem[] = [
   { href: "/student/catalog", label: "Catalog", icon: <BookOpen className="size-4 text-[#4FB8B0]" /> },
   { href: "/student/register", label: "Register", icon: <ClipboardList className="size-4 text-[#6FCB8F]" /> },
   { href: "/student/payments", label: "Payment", icon: <Wallet className="size-4 text-[#F2B84B]" /> },
+  { href: "/student/scholarships", label: "Scholarships", icon: <HandCoins className="size-4 text-[#6FCB8F]" /> },
   { href: "/student/registrations", label: "My Registrations", icon: <FileCheck2 className="size-4 text-[#54D6B8]" /> },
   { href: "/student/attendance", label: "Attendance", icon: <CalendarCheck className="size-4 text-[#F2B84B]" /> },
   { href: "/student/academic-record", label: "Academic Record", icon: <GraduationCap className="size-4 text-[#54D6B8]" /> },
   { href: "/student/certificates", label: "Certificates", icon: <Award className="size-4 text-[#6FCB8F]" /> },
+  { href: "/student/transcripts", label: "Transcripts", icon: <ScrollText className="size-4 text-[#B98FE0]" /> },
   { href: "/student/announcements", label: "Announcements", icon: <Megaphone className="size-4 text-[#5EC3E0]" /> },
+  { href: "/student/forums", label: "Forums", icon: <Globe className="size-4 text-[#4FB8B0]" /> },
   { href: "/student/calendar", label: "Calendar", icon: <CalendarDays className="size-4 text-[#4FB8B0]" /> },
 ];
 

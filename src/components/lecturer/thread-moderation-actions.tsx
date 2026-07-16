@@ -24,7 +24,7 @@ export function ThreadModerationActions({
   isLocked,
 }: {
   threadId: string;
-  moduleId: string;
+  moduleId: string | null;
   isPinned: boolean;
   isLocked: boolean;
 }) {
@@ -74,7 +74,7 @@ export function ThreadModerationActions({
               onClick={() =>
                 startTransition(async () => {
                   await deleteThread(threadId, moduleId);
-                  router.push(`/lecturer/modules/${moduleId}/discussions`);
+                  router.push(moduleId ? `/lecturer/modules/${moduleId}/discussions` : "/lecturer/forums");
                 })
               }
             >

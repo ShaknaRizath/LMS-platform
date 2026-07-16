@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/shared/stat-card";
 import {
   Empty,
   EmptyHeader,
@@ -19,17 +20,25 @@ import {
 import { Wallet } from "lucide-react";
 
 export default async function FinanceDashboardPage() {
-  const payments = await prisma.paymentRecord.findMany({
-    where: { verificationStatus: "PENDING" },
-    include: { registration: { include: { student: true } } },
-    orderBy: { uploadedAt: "asc" },
-  });
+  const [payments, pendingScholarships] = await Promise.all([
+    prisma.paymentRecord.findMany({
+      where: { verificationStatus: "PENDING" },
+      include: { registration: { include: { student: true } } },
+      orderBy: { uploadedAt: "asc" },
+    }),
+    prisma.scholarship.count({ where: { status: "PENDING" } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Finance</h1>
         <p className="text-muted-foreground">Payments awaiting verification.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <StatCard label="Pending payments" value={payments.length} />
+        <StatCard label="Pending scholarships" value={pendingScholarships} />
       </div>
 
       {payments.length === 0 ? (

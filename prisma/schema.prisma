@@ -25,6 +25,49 @@ enum Role {
   STUDENT
 }
 
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  VISITING
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  UNPAID
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ScholarshipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ScholarshipDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum DisciplineStatus {
+  OPEN
+  RESOLVED
+}
+
+enum DisciplineOutcome {
+  NONE
+  WARNING
+  SUSPENSION
+  EXPULSION
+}
+
 enum ContentType {
   FILE
   LINK
@@ -42,6 +85,19 @@ enum ContentStatus {
 enum AnnouncementScope {
   INSTITUTION
   MODULE
+}
+
+enum DiscussionScope {
+  INSTITUTION
+  MODULE
+}
+
+enum ForumCategory {
+  GENERAL
+  ACADEMIC
+  EVENTS
+  CAREERS
+  OTHER
 }
 
 enum RegistrationStatus {
@@ -143,10 +199,23 @@ model User {
   role         Role
   isActive     Boolean @default(true)
 
+  // Only meaningful for STUDENT role: assigned lazily on first transcript issuance, not at
+  // admission — see ensureRegistrationNumber in transcript.actions.ts.
+  registrationNumber String? @unique
+
   // Only meaningful for STUDENT role: home program for catalog default / dashboard.
   // SetNull rather than Cascade: deleting a Program should not delete student accounts.
   programId String?
   program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  // Only meaningful for non-STUDENT roles: employment/HR record, editable by HR_OFFICER via
+  // updateStaffEmploymentDetails (deliberately a separate action from updateUser — identity/
+  // role/password changes stay SUPER_ADMIN/CAMPUS_ADMIN-only, employment data is HR's).
+  jobTitle        String?
+  department      String?
+  employmentType  EmploymentType?
+  startDate       DateTime?
+  contractEndDate DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -178,6 +247,16 @@ model User {
   applicationCreated        Application?               @relation("ApplicationCreatedUser")
   moduleGradeLocksApplied   ModuleGradeLock[]           @relation("ModuleGradeLockedBy")
   moduleGradeLocksRemoved   ModuleGradeLock[]           @relation("ModuleGradeUnlockedBy")
+  invigilatedExams          Quiz[]                      @relation("QuizInvigilator")
+  transcriptsEarned         Transcript[]                @relation("TranscriptStudent")
+  transcriptsIssued         Transcript[]                @relation("TranscriptIssuedBy")
+  leaveRequestsSubmitted    StaffLeaveRequest[]         @relation("StaffLeaveRequests")
+  leaveRequestsDecided      StaffLeaveRequest[]         @relation("StaffLeaveDecidedBy")
+  scholarshipsApplied       Scholarship[]               @relation("ScholarshipStudent")
+  scholarshipsDecided       Scholarship[]               @relation("ScholarshipDecidedBy")
+  disciplineCasesAsStudent  DisciplineCase[]             @relation("DisciplineCaseStudent")
+  disciplineCasesReported   DisciplineCase[]             @relation("DisciplineCaseReportedBy")
+  disciplineCasesResolved   DisciplineCase[]             @relation("DisciplineCaseResolvedBy")
 
   @@index([role])
 }
@@ -518,6 +597,12 @@ model Quiz {
   scheduledById  String?
   scheduledBy    User?      @relation("QuizScheduledBy", fields: [scheduledById], references: [id], onDelete: SetNull)
 
+  // EXAM only, set alongside availableFrom/availableUntil by scheduleExam. Conflict-checked
+  // against other SCHEDULED exams for the same venue/invigilator (see checkExamConflict).
+  venue         String?
+  invigilatorId String?
+  invigilator   User?   @relation("QuizInvigilator", fields: [invigilatorId], references: [id], onDelete: SetNull)
+
   // Optional — a quiz with no category is excluded from the module's weighted grade.
   assessmentCategoryId String?
   assessmentCategory   AssessmentCategory? @relation(fields: [assessmentCategoryId], references: [id], onDelete: SetNull)
@@ -533,6 +618,8 @@ model Quiz {
   learningOutcomes LearningOutcome[]
 
   @@index([moduleId, status])
+  @@index([venue])
+  @@index([invigilatorId])
 }
 
 model QuizQuestion {
@@ -717,15 +804,17 @@ model Announcement {
 // only the lecturer who owns the module can pin/lock/delete (see discussion.actions.ts).
 
 model DiscussionThread {
-  id       String  @id @default(cuid())
-  moduleId String
-  module   Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  id       String          @id @default(cuid())
+  scope    DiscussionScope @default(MODULE)
+  moduleId String?
+  module   Module?         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  category ForumCategory? // only meaningful when scope = INSTITUTION
   title    String
-  body     String  @db.Text
+  body     String          @db.Text
   authorId String
-  author   User    @relation(fields: [authorId], references: [id])
-  isPinned Boolean @default(false)
-  isLocked Boolean @default(false)
+  author   User            @relation(fields: [authorId], references: [id])
+  isPinned Boolean         @default(false)
+  isLocked Boolean         @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -733,6 +822,7 @@ model DiscussionThread {
   posts DiscussionPost[]
 
   @@index([moduleId])
+  @@index([scope, category])
 }
 
 model DiscussionPost {
@@ -862,6 +952,93 @@ model Certificate {
 
   @@unique([studentId, moduleId])
   @@index([verificationCode])
+}
+
+// ---------- TRANSCRIPTS ----------
+// Student-wide, GPA-based — distinct from Certificate (per-module). Not unique on studentId:
+// a student's GPA changes each semester, so transcripts are reissuable point-in-time
+// snapshots, not a one-time document.
+
+model Transcript {
+  id               String   @id @default(cuid())
+  studentId        String
+  student          User     @relation("TranscriptStudent", fields: [studentId], references: [id])
+  verificationCode String   @unique
+  cumulativeGpa    Decimal? @db.Decimal(3, 2)
+  fileUrl          String
+  issuedById       String
+  issuedBy         User     @relation("TranscriptIssuedBy", fields: [issuedById], references: [id])
+  issuedAt         DateTime @default(now())
+
+  @@index([verificationCode])
+  @@index([studentId])
+}
+
+// ---------- STAFF MANAGEMENT ----------
+
+model StaffLeaveRequest {
+  id           String      @id @default(cuid())
+  staffId      String
+  staff        User        @relation("StaffLeaveRequests", fields: [staffId], references: [id])
+  type         LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  reason       String      @db.Text
+  status       LeaveStatus @default(PENDING)
+  decidedById  String?
+  decidedBy    User?       @relation("StaffLeaveDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime    @default(now())
+
+  @@index([staffId, status])
+}
+
+// ---------- SCHOLARSHIPS ----------
+// Student applies with a reason only; Finance decides both approval and the discount at
+// decision time (discountType/discountValue stay null until approved) — the student doesn't
+// propose their own discount. getEffectiveFee (src/lib/fees.ts) picks the single
+// most-recently-approved row per student; no stacking multiple approved scholarships, no
+// per-semester expiry.
+
+model Scholarship {
+  id            String                   @id @default(cuid())
+  studentId     String
+  student       User                     @relation("ScholarshipStudent", fields: [studentId], references: [id])
+  reason        String                   @db.Text
+  status        ScholarshipStatus        @default(PENDING)
+  discountType  ScholarshipDiscountType?
+  discountValue Decimal?                 @db.Decimal(10, 2)
+  decidedById   String?
+  decidedBy     User?                    @relation("ScholarshipDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt     DateTime?
+  decisionNote  String?
+  createdAt     DateTime                 @default(now())
+
+  @@index([studentId, status])
+}
+
+// ---------- DISCIPLINE ----------
+// Coordinator files (maker), Academic Director resolves (checker) — same maker/decider shape
+// as StaffLeaveRequest above. Staff-only: no student-facing view of these records.
+
+model DisciplineCase {
+  id             String            @id @default(cuid())
+  studentId      String
+  student        User              @relation("DisciplineCaseStudent", fields: [studentId], references: [id])
+  reportedById   String
+  reportedBy     User              @relation("DisciplineCaseReportedBy", fields: [reportedById], references: [id])
+  incidentDate   DateTime
+  description    String            @db.Text
+  status         DisciplineStatus  @default(OPEN)
+  outcome        DisciplineOutcome @default(NONE)
+  resolvedById   String?
+  resolvedBy     User?             @relation("DisciplineCaseResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime          @default(now())
+
+  @@index([studentId, status])
 }
 
 // ---------- CALENDAR ----------

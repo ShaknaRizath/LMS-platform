@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { assertLecturerOwnsModule, assertStudentEnrolledInModule } from "@/lib/auth/ownership";
-import { threadSchema, postSchema } from "@/lib/validation/discussion.schema";
+import { threadSchema, postSchema, forumThreadSchema } from "@/lib/validation/discussion.schema";
 import type { ActionState } from "@/lib/actions/action-state";
 import type { Role } from "@/generated/prisma/enums";
 
@@ -17,8 +17,10 @@ async function assertModuleMember(moduleId: string, user: { id: string; role: Ro
   }
 }
 
-function basePaths(moduleId: string) {
-  return [`/lecturer/modules/${moduleId}/discussions`, `/student/modules/${moduleId}/discussions`];
+function basePaths(moduleId: string | null) {
+  return moduleId
+    ? [`/lecturer/modules/${moduleId}/discussions`, `/student/modules/${moduleId}/discussions`]
+    : ["/lecturer/forums", "/student/forums"];
 }
 
 export async function createThread(
@@ -44,14 +46,32 @@ export async function createThread(
   return undefined;
 }
 
+export async function createForumThread(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireRole(["LECTURER", "STUDENT"]);
+
+  const parsed = forumThreadSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const thread = await prisma.discussionThread.create({
+    data: { ...parsed.data, scope: "INSTITUTION", authorId: user.id },
+  });
+
+  basePaths(null).forEach((path) => revalidatePath(path));
+  revalidatePath(`/lecturer/forums/${thread.id}`);
+  revalidatePath(`/student/forums/${thread.id}`);
+  return undefined;
+}
+
 export async function createPost(
   threadId: string,
-  moduleId: string,
+  moduleId: string | null,
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
   const user = await requireRole(["LECTURER", "STUDENT"]);
-  await assertModuleMember(moduleId, user);
+  if (moduleId) await assertModuleMember(moduleId, user);
 
   const thread = await prisma.discussionThread.findUniqueOrThrow({ where: { id: threadId } });
   if (thread.isLocked) {
@@ -67,14 +87,13 @@ export async function createPost(
     data: { ...parsed.data, threadId, authorId: user.id },
   });
 
-  revalidatePath(`/lecturer/modules/${moduleId}/discussions/${threadId}`);
-  revalidatePath(`/student/modules/${moduleId}/discussions/${threadId}`);
+  basePaths(moduleId).forEach((path) => revalidatePath(`${path}/${threadId}`));
   return undefined;
 }
 
-export async function deletePost(postId: string, threadId: string, moduleId: string) {
+export async function deletePost(postId: string, threadId: string, moduleId: string | null) {
   const user = await requireRole(["LECTURER", "STUDENT"]);
-  await assertModuleMember(moduleId, user);
+  if (moduleId) await assertModuleMember(moduleId, user);
 
   const post = await prisma.discussionPost.findUniqueOrThrow({ where: { id: postId } });
   if (post.authorId !== user.id && user.role !== "LECTURER") {
@@ -83,32 +102,30 @@ export async function deletePost(postId: string, threadId: string, moduleId: str
 
   await prisma.discussionPost.delete({ where: { id: postId } });
 
-  revalidatePath(`/lecturer/modules/${moduleId}/discussions/${threadId}`);
-  revalidatePath(`/student/modules/${moduleId}/discussions/${threadId}`);
+  basePaths(moduleId).forEach((path) => revalidatePath(`${path}/${threadId}`));
 }
 
-export async function pinThread(threadId: string, moduleId: string, isPinned: boolean) {
+export async function pinThread(threadId: string, moduleId: string | null, isPinned: boolean) {
   const lecturer = await requireRole(["LECTURER"]);
-  await assertLecturerOwnsModule(moduleId, lecturer.id);
+  if (moduleId) await assertLecturerOwnsModule(moduleId, lecturer.id);
 
   await prisma.discussionThread.update({ where: { id: threadId }, data: { isPinned } });
 
   basePaths(moduleId).forEach((path) => revalidatePath(path));
 }
 
-export async function lockThread(threadId: string, moduleId: string, isLocked: boolean) {
+export async function lockThread(threadId: string, moduleId: string | null, isLocked: boolean) {
   const lecturer = await requireRole(["LECTURER"]);
-  await assertLecturerOwnsModule(moduleId, lecturer.id);
+  if (moduleId) await assertLecturerOwnsModule(moduleId, lecturer.id);
 
   await prisma.discussionThread.update({ where: { id: threadId }, data: { isLocked } });
 
-  revalidatePath(`/lecturer/modules/${moduleId}/discussions/${threadId}`);
-  revalidatePath(`/student/modules/${moduleId}/discussions/${threadId}`);
+  basePaths(moduleId).forEach((path) => revalidatePath(`${path}/${threadId}`));
 }
 
-export async function deleteThread(threadId: string, moduleId: string) {
+export async function deleteThread(threadId: string, moduleId: string | null) {
   const lecturer = await requireRole(["LECTURER"]);
-  await assertLecturerOwnsModule(moduleId, lecturer.id);
+  if (moduleId) await assertLecturerOwnsModule(moduleId, lecturer.id);
 
   await prisma.discussionThread.delete({ where: { id: threadId } });
 

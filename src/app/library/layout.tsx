@@ -19,6 +19,7 @@ export default async function LibraryOfficerLayout({
       navItems={navItems}
       userName={user.name ?? user.email ?? "Library Officer"}
       userEmail={user.email ?? ""}
+      leaveHref="/staff/leave"
     >
       {children}
     </DashboardShell>

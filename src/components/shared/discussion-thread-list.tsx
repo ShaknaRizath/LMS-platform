@@ -17,6 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import {
   Empty,
@@ -34,16 +41,23 @@ export type ThreadSummary = {
   authorName: string;
   createdAt: Date;
   postCount: number;
+  category?: string | null;
 };
 
 export function DiscussionThreadList({
   threads,
   basePath,
   createThreadAction,
+  heading = "Discussions",
+  emptyDescription = "Start the first thread for this module.",
+  categories,
 }: {
   threads: ThreadSummary[];
   basePath: string;
   createThreadAction: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  heading?: string;
+  emptyDescription?: string;
+  categories?: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -58,7 +72,7 @@ export function DiscussionThreadList({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">Discussions</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{heading}</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button type="button"><Plus />New thread</Button>} />
           <DialogContent>
@@ -72,6 +86,24 @@ export function DiscussionThreadList({
                   <Input id="title" name="title" required />
                   <FieldError errors={state?.fieldErrors?.title?.map((message) => ({ message }))} />
                 </Field>
+                {categories && (
+                  <Field>
+                    <FieldLabel htmlFor="category">Category</FieldLabel>
+                    <Select name="category" defaultValue={categories[0]?.value} items={categories}>
+                      <SelectTrigger id="category" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.value} value={category.value}>
+                            {category.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldError errors={state?.fieldErrors?.category?.map((message) => ({ message }))} />
+                  </Field>
+                )}
                 <Field>
                   <FieldLabel htmlFor="body">Message</FieldLabel>
                   <Textarea id="body" name="body" rows={4} required />
@@ -94,7 +126,7 @@ export function DiscussionThreadList({
               <MessagesSquare />
             </EmptyMedia>
             <EmptyTitle>No discussions yet</EmptyTitle>
-            <EmptyDescription>Start the first thread for this module.</EmptyDescription>
+            <EmptyDescription>{emptyDescription}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -105,6 +137,7 @@ export function DiscussionThreadList({
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <CardTitle>{thread.title}</CardTitle>
+                    {thread.category && <Badge variant="outline">{thread.category}</Badge>}
                     {thread.isPinned && (
                       <Badge variant="secondary">
                         <Pin className="size-3" /> Pinned

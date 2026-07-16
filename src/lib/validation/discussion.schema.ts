@@ -7,6 +7,22 @@ export const threadSchema = z.object({
 
 export type ThreadInput = z.infer<typeof threadSchema>;
 
+export const FORUM_CATEGORY_OPTIONS = ["GENERAL", "ACADEMIC", "EVENTS", "CAREERS", "OTHER"] as const;
+
+export const FORUM_CATEGORY_LABELS: Record<(typeof FORUM_CATEGORY_OPTIONS)[number], string> = {
+  GENERAL: "General",
+  ACADEMIC: "Academic",
+  EVENTS: "Events",
+  CAREERS: "Careers",
+  OTHER: "Other",
+};
+
+export const forumThreadSchema = threadSchema.extend({
+  category: z.enum(FORUM_CATEGORY_OPTIONS, { error: "Select a category." }),
+});
+
+export type ForumThreadInput = z.infer<typeof forumThreadSchema>;
+
 export const postSchema = z.object({
   body: z.string().min(1, { error: "Enter a reply." }),
 });

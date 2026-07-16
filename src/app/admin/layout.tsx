@@ -43,6 +43,7 @@ export default async function AdminLayout({
       navItems={navItems}
       userName={user.name ?? user.email ?? "Admin"}
       userEmail={user.email ?? ""}
+      leaveHref="/staff/leave"
     >
       {children}
     </DashboardShell>

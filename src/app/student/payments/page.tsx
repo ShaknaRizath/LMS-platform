@@ -44,7 +44,22 @@ export default async function StudentPaymentsPage() {
     select: { id: true, semesterId: true, status: true, yearLevel: true },
   });
 
-  const fees = await prisma.programCurriculumFee.findMany({ where: { programId: student.programId } });
+  const [fees, scholarship] = await Promise.all([
+    prisma.programCurriculumFee.findMany({ where: { programId: student.programId } }),
+    prisma.scholarship.findFirst({
+      where: { studentId: student.id, status: "APPROVED" },
+      orderBy: { decidedAt: "desc" },
+    }),
+  ]);
+
+  function applyDiscount(amount: number): number {
+    if (!scholarship || scholarship.discountType === null || scholarship.discountValue === null) return amount;
+    const discount =
+      scholarship.discountType === "PERCENTAGE"
+        ? (amount * Number(scholarship.discountValue)) / 100
+        : Number(scholarship.discountValue);
+    return Math.max(0, amount - discount);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,7 +100,7 @@ export default async function StudentPaymentsPage() {
           fees={fees.map((f) => ({
             yearLevel: f.yearLevel,
             semesterNumber: f.semesterNumber,
-            amount: f.amount.toString(),
+            amount: applyDiscount(Number(f.amount)).toString(),
           }))}
         />
       )}

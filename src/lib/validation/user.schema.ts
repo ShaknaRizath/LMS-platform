@@ -14,6 +14,10 @@ export const ROLE_OPTIONS = [
   "STUDENT",
 ] as const;
 
+// Every role except STUDENT — single source of truth for "any staff member" gates
+// (leave requests, the /staff/leave layout, the HR staff-directory query).
+export const STAFF_ROLES = ROLE_OPTIONS.filter((role) => role !== "STUDENT");
+
 export const userSchema = z.object({
   email: z.email({ error: "Enter a valid email address." }),
   firstName: z.string().min(1, { error: "Enter a first name." }),
