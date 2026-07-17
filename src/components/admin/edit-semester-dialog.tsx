@@ -21,6 +21,7 @@ export type EditableSemester = {
   endDate: Date;
   registrationOpensAt: Date | null;
   registrationClosesAt: Date | null;
+  updatedAt: Date;
 };
 
 export function EditSemesterDialog({
@@ -42,6 +43,7 @@ export function EditSemesterDialog({
           <DialogTitle>Edit {semester.name}</DialogTitle>
         </DialogHeader>
         <SemesterForm
+          key={semester.updatedAt.getTime()}
           action={updateSemester.bind(null, semester.id, academicYearId)}
           defaultValues={{
             name: semester.name,

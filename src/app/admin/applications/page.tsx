@@ -15,7 +15,7 @@ export default async function AdminApplicationsPage({
 
   const applications = await prisma.application.findMany({
     where: activeStatus ? { status: activeStatus as (typeof STATUSES)[number] } : undefined,
-    include: { program: true },
+    include: { program: true, reviewedBy: { select: { firstName: true, lastName: true } } },
     orderBy: { submittedAt: "desc" },
   });
 

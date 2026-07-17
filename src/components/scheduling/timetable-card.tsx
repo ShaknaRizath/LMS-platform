@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClassSessionForm } from "@/components/scheduling/class-session-form";
+import { EditClassSessionDialog } from "@/components/scheduling/edit-class-session-dialog";
 import { createClassSession, deleteClassSession } from "@/lib/actions/scheduling/class-session.actions";
 import type { DayOfWeek } from "@/generated/prisma/client";
 
@@ -26,6 +27,8 @@ export function TimetableCard({
     startTime: string;
     endTime: string;
     room: string;
+    lecturerId: string;
+    updatedAt: Date;
     lecturer: { firstName: string; lastName: string };
   }[];
   lecturers: { id: string; firstName: string; lastName: string }[];
@@ -47,11 +50,14 @@ export function TimetableCard({
                   {DAY_LABELS[session.dayOfWeek]} · {session.startTime}-{session.endTime} ·{" "}
                   {session.room} · {session.lecturer.firstName} {session.lecturer.lastName}
                 </span>
-                <form action={deleteClassSession.bind(null, session.id, moduleId)}>
-                  <Button type="submit" variant="ghost" size="sm">
-                    Remove
-                  </Button>
-                </form>
+                <div className="flex items-center gap-2">
+                  <EditClassSessionDialog session={session} moduleId={moduleId} lecturers={lecturers} />
+                  <form action={deleteClassSession.bind(null, session.id, moduleId)}>
+                    <Button type="submit" variant="ghost" size="sm">
+                      Remove
+                    </Button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>

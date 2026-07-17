@@ -27,11 +27,19 @@ const DAY_LABELS: Record<(typeof DAYS_OF_WEEK)[number], string> = {
 export function ClassSessionForm({
   lecturers,
   action,
+  defaultValues,
   submitLabel = "Add session",
   pendingLabel = "Adding...",
 }: {
   lecturers: { id: string; firstName: string; lastName: string }[];
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  defaultValues?: {
+    dayOfWeek: (typeof DAYS_OF_WEEK)[number];
+    startTime: string;
+    endTime: string;
+    room: string;
+    lecturerId: string;
+  };
   submitLabel?: string;
   pendingLabel?: string;
 }) {
@@ -53,7 +61,7 @@ export function ClassSessionForm({
             <FieldLabel htmlFor="dayOfWeek">Day</FieldLabel>
             <Select
               name="dayOfWeek"
-              defaultValue="MONDAY"
+              defaultValue={defaultValues?.dayOfWeek ?? "MONDAY"}
               items={DAYS_OF_WEEK.map((day) => ({ value: day, label: DAY_LABELS[day] }))}
             >
               <SelectTrigger id="dayOfWeek" className="w-full">
@@ -72,6 +80,7 @@ export function ClassSessionForm({
             <FieldLabel htmlFor="lecturerId">Lecturer</FieldLabel>
             <Select
               name="lecturerId"
+              defaultValue={defaultValues?.lecturerId}
               items={lecturers.map((lecturer) => ({
                 value: lecturer.id,
                 label: `${lecturer.firstName} ${lecturer.lastName}`,
@@ -94,17 +103,35 @@ export function ClassSessionForm({
         <Field orientation="responsive">
           <Field>
             <FieldLabel htmlFor="startTime">Start time</FieldLabel>
-            <Input id="startTime" name="startTime" type="time" required />
+            <Input
+              id="startTime"
+              name="startTime"
+              type="time"
+              defaultValue={defaultValues?.startTime}
+              required
+            />
             <FieldError errors={state?.fieldErrors?.startTime?.map((message) => ({ message }))} />
           </Field>
           <Field>
             <FieldLabel htmlFor="endTime">End time</FieldLabel>
-            <Input id="endTime" name="endTime" type="time" required />
+            <Input
+              id="endTime"
+              name="endTime"
+              type="time"
+              defaultValue={defaultValues?.endTime}
+              required
+            />
             <FieldError errors={state?.fieldErrors?.endTime?.map((message) => ({ message }))} />
           </Field>
           <Field>
             <FieldLabel htmlFor="room">Room</FieldLabel>
-            <Input id="room" name="room" placeholder="e.g. Lab 2" required />
+            <Input
+              id="room"
+              name="room"
+              placeholder="e.g. Lab 2"
+              defaultValue={defaultValues?.room}
+              required
+            />
             <FieldError errors={state?.fieldErrors?.room?.map((message) => ({ message }))} />
           </Field>
         </Field>

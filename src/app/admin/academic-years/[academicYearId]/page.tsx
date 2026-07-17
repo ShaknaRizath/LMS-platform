@@ -162,6 +162,7 @@ export default async function AcademicYearDetailPage({
                           endDate: semester.endDate,
                           registrationOpensAt: semester.registrationOpensAt,
                           registrationClosesAt: semester.registrationClosesAt,
+                          updatedAt: semester.updatedAt,
                         }}
                         academicYearId={academicYear.id}
                         deleteWarning={`This permanently deletes ${moduleCountMap.get(semester.id) ?? 0} module(s) and ${registrationCountMap.get(semester.id) ?? 0} registration(s) with their payment records in this semester. This cannot be undone.`}

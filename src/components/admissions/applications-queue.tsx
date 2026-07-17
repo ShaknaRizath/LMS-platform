@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { RejectApplicationDialog } from "@/components/admissions/reject-application-dialog";
 import { ApproveApplicationButton } from "@/components/admissions/approve-application-button";
+import { ApplicationDetailsDialog } from "@/components/admissions/application-details-dialog";
 import {
   Table,
   TableBody,
@@ -40,9 +41,15 @@ export function ApplicationsQueue({
     firstName: string;
     lastName: string;
     email: string;
+    phone: string | null;
     program: { name: string };
+    statement: string | null;
     status: string;
+    referenceCode: string;
     submittedAt: Date;
+    reviewedBy: { firstName: string; lastName: string } | null;
+    reviewedAt: Date | null;
+    rejectionReason: string | null;
   }[];
 }) {
   return (
@@ -109,12 +116,15 @@ export function ApplicationsQueue({
                     <Badge variant={STATUS_VARIANT[application.status]}>{application.status}</Badge>
                   </TableCell>
                   <TableCell>
-                    {application.status === "PENDING" && (
-                      <div className="flex items-center gap-2">
-                        <ApproveApplicationButton applicationId={application.id} />
-                        <RejectApplicationDialog applicationId={application.id} />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <ApplicationDetailsDialog application={application} />
+                      {application.status === "PENDING" && (
+                        <>
+                          <ApproveApplicationButton applicationId={application.id} />
+                          <RejectApplicationDialog applicationId={application.id} />
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
