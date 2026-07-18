@@ -12,6 +12,30 @@ import {
 import type { ContentType } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 
+const JOIN_WINDOW_MINUTES_BEFORE = 15;
+
+function getSessionJoinState(scheduledAt: Date | null): {
+  canJoin: boolean;
+  label: string;
+} {
+  if (!scheduledAt) {
+    // Content created before this field existed — don't lock out an existing session.
+    return { canJoin: true, label: "" };
+  }
+  const opensAt = new Date(scheduledAt.getTime() - JOIN_WINDOW_MINUTES_BEFORE * 60_000);
+  const now = new Date();
+  if (now < opensAt) {
+    return {
+      canJoin: false,
+      label: `Starts ${scheduledAt.toLocaleString()} — join link opens 15 minutes before.`,
+    };
+  }
+  if (now < scheduledAt) {
+    return { canJoin: true, label: `Starts ${scheduledAt.toLocaleString()} — you can join now.` };
+  }
+  return { canJoin: true, label: `Started ${scheduledAt.toLocaleString()}` };
+}
+
 export type AssignmentSubmissionStatus = "NOT_SUBMITTED" | "SUBMITTED" | "GRADED";
 
 const TYPE_ICONS: Record<ContentType, typeof FileText> = {
@@ -51,6 +75,7 @@ export function ContentItemView({
     zoomMeetingId: string | null;
     zoomPasscode: string | null;
     meetJoinUrl: string | null;
+    scheduledAt: Date | null;
     richTextHtml: string | null;
     fileUrl: string | null;
     fileName: string | null;
@@ -117,37 +142,65 @@ export function ContentItemView({
           Watch video
         </a>
       )}
-      {item.type === "ZOOM" && item.zoomJoinUrl && (
-        <div className="flex flex-col gap-1">
-          <a
-            href={item.zoomJoinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
-          >
-            <ExternalLink className="size-3.5" />
-            Join Zoom session
-          </a>
-          {(item.zoomMeetingId || item.zoomPasscode) && (
-            <p className="text-xs text-muted-foreground">
-              {item.zoomMeetingId && `Meeting ID: ${item.zoomMeetingId}`}
-              {item.zoomMeetingId && item.zoomPasscode && " · "}
-              {item.zoomPasscode && `Passcode: ${item.zoomPasscode}`}
-            </p>
-          )}
-        </div>
-      )}
-      {item.type === "GOOGLE_MEET" && item.meetJoinUrl && (
-        <a
-          href={item.meetJoinUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
-        >
-          <ExternalLink className="size-3.5" />
-          Join Google Meet
-        </a>
-      )}
+      {item.type === "ZOOM" &&
+        item.zoomJoinUrl &&
+        (() => {
+          const joinState = getSessionJoinState(item.scheduledAt);
+          return (
+            <div className="flex flex-col gap-1">
+              {joinState.canJoin ? (
+                <a
+                  href={item.zoomJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="size-3.5" />
+                  Join Zoom session
+                </a>
+              ) : (
+                <span className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
+                  <ExternalLink className="size-3.5" />
+                  Join Zoom session
+                </span>
+              )}
+              {joinState.label && <p className="text-xs text-muted-foreground">{joinState.label}</p>}
+              {(item.zoomMeetingId || item.zoomPasscode) && (
+                <p className="text-xs text-muted-foreground">
+                  {item.zoomMeetingId && `Meeting ID: ${item.zoomMeetingId}`}
+                  {item.zoomMeetingId && item.zoomPasscode && " · "}
+                  {item.zoomPasscode && `Passcode: ${item.zoomPasscode}`}
+                </p>
+              )}
+            </div>
+          );
+        })()}
+      {item.type === "GOOGLE_MEET" &&
+        item.meetJoinUrl &&
+        (() => {
+          const joinState = getSessionJoinState(item.scheduledAt);
+          return (
+            <div className="flex flex-col gap-1">
+              {joinState.canJoin ? (
+                <a
+                  href={item.meetJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="size-3.5" />
+                  Join Google Meet
+                </a>
+              ) : (
+                <span className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
+                  <ExternalLink className="size-3.5" />
+                  Join Google Meet
+                </span>
+              )}
+              {joinState.label && <p className="text-xs text-muted-foreground">{joinState.label}</p>}
+            </div>
+          );
+        })()}
       {item.type === "FILE" && item.fileUrl && (
         <a
           href={item.fileUrl}

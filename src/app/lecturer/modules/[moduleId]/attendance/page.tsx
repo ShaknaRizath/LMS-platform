@@ -101,7 +101,15 @@ export default async function LecturerAttendancePage({
         <CardContent>
           <form className="flex flex-wrap items-end gap-3" method="GET">
             {sessions.length > 1 && (
-              <Select name="sessionId" defaultValue={activeSession.id}>
+              <Select
+                key={activeSession.id}
+                name="sessionId"
+                defaultValue={activeSession.id}
+                items={sessions.map((session) => ({
+                  value: session.id,
+                  label: `${DAY_LABELS[session.dayOfWeek]} ${session.startTime}-${session.endTime} · ${session.room}`,
+                }))}
+              >
                 <SelectTrigger className="w-64">
                   <SelectValue />
                 </SelectTrigger>

@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db/prisma";
-import { computeModuleGrade } from "@/lib/grades/module-grade";
+import { computeModuleGrade, type ModuleGradeCategoryBreakdown } from "@/lib/grades/module-grade";
 
 export const GRADE_BANDS = [
   { min: 90, letter: "A", points: 4.0 },
@@ -29,6 +29,7 @@ export type AcademicRecordModule = {
   letter: string | null;
   points: number | null;
   isComplete: boolean;
+  categories: ModuleGradeCategoryBreakdown[];
 };
 
 export type AcademicRecordSemester = {
@@ -82,6 +83,7 @@ export async function computeStudentAcademicRecord(studentId: string): Promise<A
       letter: letterPoints?.letter ?? null,
       points: letterPoints?.points ?? null,
       isComplete: grade.isComplete,
+      categories: grade.categories,
     };
 
     const semesterId = enrollment.module.semesterId;

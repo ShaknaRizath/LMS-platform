@@ -530,6 +530,11 @@ model ContentItem {
   meetJoinUrl   String?
   richTextHtml  String? @db.Text
 
+  // Meaningful only for type ZOOM / GOOGLE_MEET — when the live session actually starts.
+  // Required by the form for those two types, but stays nullable at the DB level so
+  // content items created before this field existed don't need a backfill.
+  scheduledAt DateTime?
+
   // assignment fields — dueDate/isAssignment orthogonal to type; grading lives on Submission
   isAssignment Boolean   @default(false)
   dueDate      DateTime?

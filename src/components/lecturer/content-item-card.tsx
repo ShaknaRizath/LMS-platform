@@ -66,6 +66,7 @@ export type ContentItemData = {
   zoomMeetingId: string | null;
   zoomPasscode: string | null;
   meetJoinUrl: string | null;
+  scheduledAt: Date | null;
   richTextHtml: string | null;
   fileUrl: string | null;
   fileName: string | null;
@@ -132,6 +133,13 @@ export function ContentItemCard({
           )}
         </div>
         {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+        {(item.type === "ZOOM" || item.type === "GOOGLE_MEET") && (
+          <p className="text-xs text-muted-foreground">
+            {item.scheduledAt
+              ? `Starts ${item.scheduledAt.toLocaleString()}`
+              : "No start time set"}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

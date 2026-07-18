@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth/rbac";
 import { computeStudentAcademicRecord } from "@/lib/grades/gpa";
 import { StatCard } from "@/components/shared/stat-card";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -50,8 +51,7 @@ export default async function StudentAcademicRecordPage() {
                     <TableRow>
                       <TableHead>Module</TableHead>
                       <TableHead>Credits</TableHead>
-                      <TableHead>Grade</TableHead>
-                      <TableHead>Letter</TableHead>
+                      <TableHead>Overall</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -62,10 +62,29 @@ export default async function StudentAcademicRecordPage() {
                         </TableCell>
                         <TableCell>{module_.credits ?? "—"}</TableCell>
                         <TableCell>
-                          {module_.percentage !== null ? `${Math.round(module_.percentage)}%` : "—"}
-                          {!module_.isComplete && module_.percentage !== null && " (in progress)"}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {module_.percentage !== null
+                                  ? `${Math.round(module_.percentage)}%${module_.letter ? ` (${module_.letter})` : ""}`
+                                  : "—"}
+                              </span>
+                              {!module_.isComplete && (
+                                <Badge variant="secondary">In progress</Badge>
+                              )}
+                            </div>
+                            {module_.categories.length > 0 && (
+                              <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                                {module_.categories.map((category) => (
+                                  <span key={category.categoryId}>
+                                    {category.name} ({category.weightPercent}%):{" "}
+                                    {category.percentage !== null ? `${Math.round(category.percentage)}%` : "—"}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell>{module_.letter ?? "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -17,6 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 
+function toDateTimeLocalValue(date?: Date | null) {
+  if (!date) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 const TYPE_LABELS: Record<ContentType, string> = {
   RICH_TEXT: "Text page",
   FILE: "File (PDF, slides, docs)",
@@ -44,6 +50,7 @@ export function ContentItemForm({
     zoomMeetingId?: string | null;
     zoomPasscode?: string | null;
     meetJoinUrl?: string | null;
+    scheduledAt?: Date | null;
     richTextHtml?: string | null;
     fileUrl?: string | null;
     fileName?: string | null;
@@ -174,21 +181,51 @@ export function ContentItemForm({
                 <Input id="zoomPasscode" name="zoomPasscode" defaultValue={defaultValues?.zoomPasscode ?? ""} />
               </Field>
             </Field>
+            <Field>
+              <FieldLabel htmlFor="scheduledAt">Session starts</FieldLabel>
+              <Input
+                id="scheduledAt"
+                name="scheduledAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocalValue(defaultValues?.scheduledAt)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Students can join from 15 minutes before this time.
+              </p>
+              <FieldError errors={state?.fieldErrors?.scheduledAt?.map((message) => ({ message }))} />
+            </Field>
           </>
         )}
 
         {type === "GOOGLE_MEET" && (
-          <Field>
-            <FieldLabel htmlFor="meetJoinUrl">Google Meet join URL</FieldLabel>
-            <Input
-              id="meetJoinUrl"
-              name="meetJoinUrl"
-              type="url"
-              placeholder="https://meet.google.com/..."
-              defaultValue={defaultValues?.meetJoinUrl ?? ""}
-            />
-            <FieldError errors={state?.fieldErrors?.meetJoinUrl?.map((message) => ({ message }))} />
-          </Field>
+          <>
+            <Field>
+              <FieldLabel htmlFor="meetJoinUrl">Google Meet join URL</FieldLabel>
+              <Input
+                id="meetJoinUrl"
+                name="meetJoinUrl"
+                type="url"
+                placeholder="https://meet.google.com/..."
+                defaultValue={defaultValues?.meetJoinUrl ?? ""}
+              />
+              <FieldError errors={state?.fieldErrors?.meetJoinUrl?.map((message) => ({ message }))} />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="scheduledAt">Session starts</FieldLabel>
+              <Input
+                id="scheduledAt"
+                name="scheduledAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocalValue(defaultValues?.scheduledAt)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Students can join from 15 minutes before this time.
+              </p>
+              <FieldError errors={state?.fieldErrors?.scheduledAt?.map((message) => ({ message }))} />
+            </Field>
+          </>
         )}
 
         {type === "FILE" && (
