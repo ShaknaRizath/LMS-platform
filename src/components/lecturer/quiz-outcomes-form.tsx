@@ -37,7 +37,13 @@ export function QuizOutcomesForm({
       <div className="flex flex-col gap-2">
         {outcomes.map((outcome) => (
           <label key={outcome.id} className="flex items-start gap-2 text-sm">
-            <Checkbox name="outcomeIds" value={outcome.id} defaultChecked={taggedSet.has(outcome.id)} className="mt-0.5" />
+            <Checkbox
+              key={`${outcome.id}-${taggedSet.has(outcome.id)}`}
+              name="outcomeIds"
+              value={outcome.id}
+              defaultChecked={taggedSet.has(outcome.id)}
+              className="mt-0.5"
+            />
             <span>
               <span className="font-medium">{outcome.code}</span> — {outcome.description}
             </span>

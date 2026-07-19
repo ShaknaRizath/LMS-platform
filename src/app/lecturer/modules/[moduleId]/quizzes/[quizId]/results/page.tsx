@@ -78,6 +78,12 @@ export default async function LecturerQuizResultsPage({
             {MODULE_GRADES_LOCKED_MESSAGE}
           </p>
         )}
+        {quiz.kind === "EXAM" && (
+          <p className="mt-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            Results for this exam are published by the Examination Unit, not from here — you can still grade
+            essay answers below.
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card">
@@ -132,7 +138,7 @@ export default async function LecturerQuizResultsPage({
         </Table>
       </div>
 
-      {unpublishedAttempts.length > 0 && (
+      {quiz.kind !== "EXAM" && unpublishedAttempts.length > 0 && (
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-foreground">Publish results</h2>
           {unpublishedAttempts.map((attempt) => {

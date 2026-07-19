@@ -111,10 +111,12 @@ export async function submitAttempt(
     attempt.quiz.timeLimitMinutes != null &&
     new Date() > new Date(attempt.startedAt.getTime() + attempt.quiz.timeLimitMinutes * 60_000);
 
-  // No essay questions means nothing needs manual review — reveal the score right
-  // away. Otherwise it stays hidden from the student until the lecturer explicitly
-  // publishes it via publishAttemptResults, once every essay answer is graded.
-  const hasEssay = attempt.quiz.questions.some((question) => question.type === "ESSAY");
+  // Always stays hidden on submit, even when every question auto-graded — the score is
+  // computed immediately, but publishing is a deliberate decision by whoever owns that
+  // decision: the lecturer for QUIZ/PRACTICAL (publishAttemptResults), or the
+  // Examination Unit for EXAM, releasing every student's result at once
+  // (publishExamResults) so results become visible simultaneously, not as each student
+  // happens to finish.
   const now = new Date();
 
   await prisma.$transaction([
@@ -125,7 +127,7 @@ export async function submitAttempt(
         submittedAt: now,
         pointsEarned,
         totalPoints,
-        resultsPublishedAt: hasEssay ? null : now,
+        resultsPublishedAt: null,
       },
     }),
   ]);

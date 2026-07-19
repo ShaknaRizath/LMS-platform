@@ -72,7 +72,7 @@ export default async function StudentQuizAttemptPage({
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-medium">Submitted — awaiting grading</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your answers have been recorded. Your lecturer is still grading this attempt's essay questions —
+            Your answers have been recorded. Your lecturer is still grading this attempt's questions —
             your score will appear here once they publish the results.
           </p>
         </div>

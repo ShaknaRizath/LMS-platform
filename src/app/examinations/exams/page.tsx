@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { scheduleExam } from "@/lib/actions/examinations/quiz.actions";
 import { ScheduleExamForm } from "@/components/examinations/schedule-exam-form";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Empty,
@@ -28,6 +30,17 @@ export default async function ExaminationUnitExamsPage() {
     }),
     prisma.user.findMany({ where: { role: "LECTURER" }, orderBy: { firstName: "asc" } }),
   ]);
+
+  const unpublishedCounts = await prisma.quizAttempt.groupBy({
+    by: ["quizId"],
+    where: {
+      quizId: { in: scheduled.map((quiz) => quiz.id) },
+      submittedAt: { not: null },
+      resultsPublishedAt: null,
+    },
+    _count: { _all: true },
+  });
+  const unpublishedCountByQuizId = new Map(unpublishedCounts.map((row) => [row.quizId, row._count._all]));
 
   return (
     <div className="flex flex-col gap-8">
@@ -92,9 +105,20 @@ export default async function ExaminationUnitExamsPage() {
                     {quiz.invigilator ? `${quiz.invigilator.firstName} ${quiz.invigilator.lastName}` : "—"}
                   </p>
                 </div>
-                <Badge variant={quiz.status === "SCHEDULED" ? "default" : "secondary"}>
-                  {quiz.status === "SCHEDULED" ? "Scheduled" : "Closed"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {(unpublishedCountByQuizId.get(quiz.id) ?? 0) > 0 && (
+                    <Button
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link href={`/examinations/exams/${quiz.id}/results`} />}
+                    >
+                      Review &amp; publish ({unpublishedCountByQuizId.get(quiz.id)})
+                    </Button>
+                  )}
+                  <Badge variant={quiz.status === "SCHEDULED" ? "default" : "secondary"}>
+                    {quiz.status === "SCHEDULED" ? "Scheduled" : "Closed"}
+                  </Badge>
+                </div>
               </div>
             ))}
           </div>

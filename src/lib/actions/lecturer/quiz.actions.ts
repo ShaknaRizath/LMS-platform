@@ -267,6 +267,9 @@ export async function gradeEssayAnswer(
 export async function publishAttemptResults(attemptId: string, quizId: string) {
   const lecturer = await requireRole(["LECTURER"]);
   const quiz = await getOwnedQuiz(quizId, lecturer.id);
+  if (quiz.kind === "EXAM") {
+    throw new Error("Exam results are published by the Examination Unit, not the lecturer.");
+  }
   if (await isModuleGradesLocked(quiz.moduleId)) {
     throw new Error(MODULE_GRADES_LOCKED_MESSAGE);
   }

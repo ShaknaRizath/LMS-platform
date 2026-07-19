@@ -5,6 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { scheduleExamSchema } from "@/lib/validation/schedule-exam.schema";
+import { notifyUsers } from "@/lib/notifications";
+import { quizResultsPublishedTemplate } from "@/lib/notifications/templates/communication";
 import type { ActionState } from "@/lib/actions/action-state";
 
 // Scoped to status: "SCHEDULED" — a DRAFT or CLOSED exam doesn't occupy a venue. Mirrors
@@ -102,6 +104,73 @@ export async function scheduleExam(
   revalidatePath("/admin");
   revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes`);
   revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes/${quizId}`);
+  return undefined;
+}
+
+// Releases only the attempts the Examination Unit explicitly selects on
+// /examinations/exams/[quizId]/results — never a blind "publish everything." Lets them
+// review who actually sat the exam and what they scored before any student sees it, and
+// hold back individual students (e.g. suspected misconduct) while releasing the rest.
+export async function publishExamResults(
+  quizId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole(["EXAMINATION_UNIT"]);
+
+  const quiz = await prisma.quiz.findUniqueOrThrow({ where: { id: quizId }, include: { module: true } });
+  if (quiz.kind !== "EXAM") {
+    return { error: "Only exams can be published from here." };
+  }
+
+  const selectedIds = formData.getAll("attemptIds").filter((value): value is string => typeof value === "string");
+  if (selectedIds.length === 0) {
+    return { error: "Select at least one student to publish." };
+  }
+
+  const attempts = await prisma.quizAttempt.findMany({
+    where: { id: { in: selectedIds }, quizId, submittedAt: { not: null }, resultsPublishedAt: null },
+  });
+  if (attempts.length === 0) {
+    return { error: "None of the selected results can be published." };
+  }
+
+  const ungradedCount = await prisma.quizAnswer.count({
+    where: {
+      attemptId: { in: attempts.map((attempt) => attempt.id) },
+      pointsAwarded: null,
+      question: { type: "ESSAY" },
+    },
+  });
+  if (ungradedCount > 0) {
+    return { error: `${ungradedCount} essay answer(s) still need grading before these can be published.` };
+  }
+
+  await prisma.quizAttempt.updateMany({
+    where: { id: { in: attempts.map((attempt) => attempt.id) } },
+    data: { resultsPublishedAt: new Date() },
+  });
+
+  // Sequential — each notifyUsers call does its own queries, and this is a one-time
+  // release action, not a hot path, so fanning out with Promise.all isn't worth the
+  // connection-pool risk.
+  for (const attempt of attempts) {
+    await notifyUsers(
+      [attempt.studentId],
+      "QUIZ_RESULTS_PUBLISHED",
+      quizResultsPublishedTemplate({
+        quizTitle: quiz.title,
+        moduleCode: quiz.module.code,
+        pointsEarned: attempt.pointsEarned ?? undefined,
+        totalPoints: attempt.totalPoints ?? undefined,
+      })
+    );
+  }
+
+  revalidatePath("/examinations/exams");
+  revalidatePath(`/examinations/exams/${quizId}/results`);
+  revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes/${quizId}/results`);
+  revalidatePath(`/student/modules/${quiz.moduleId}/quizzes`);
   return undefined;
 }
 
