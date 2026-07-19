@@ -13,8 +13,9 @@ const FEED_LIMIT = 8;
 
 /**
  * In-app notification feed for a student's header bell — graded assignments, published
- * quiz results, and announcements relevant to them. Distinct from NotificationLog
- * (src/lib/notifications/index.ts), which audits outbound emails, not in-app read state.
+ * quiz results, announcements, and replies to threads they started or posted in.
+ * Distinct from NotificationLog (src/lib/notifications/index.ts), which audits outbound
+ * emails, not in-app read state.
  */
 export async function getStudentNotifications(studentId: string): Promise<NotificationItem[]> {
   const enrollments = await prisma.enrollment.findMany({
@@ -23,7 +24,7 @@ export async function getStudentNotifications(studentId: string): Promise<Notifi
   });
   const moduleIds = enrollments.map((enrollment) => enrollment.moduleId);
 
-  const [gradedSubmissions, publishedAttempts, announcements] = await Promise.all([
+  const [gradedSubmissions, publishedAttempts, announcements, participantThreads] = await Promise.all([
     prisma.submission.findMany({
       where: { studentId, gradedAt: { not: null } },
       include: { contentItem: { include: { week: { include: { module: true } } } } },
@@ -42,7 +43,21 @@ export async function getStudentNotifications(studentId: string): Promise<Notifi
       orderBy: { publishedAt: "desc" },
       take: FEED_LIMIT,
     }),
+    // Threads this student either started or replied in — the "subscribed" set for the
+    // reply-notification query below, which must run after this one resolves.
+    prisma.discussionThread.findMany({
+      where: { OR: [{ authorId: studentId }, { posts: { some: { authorId: studentId } } }] },
+      select: { id: true },
+    }),
   ]);
+
+  const subscribedThreadIds = participantThreads.map((thread) => thread.id);
+  const replies = await prisma.discussionPost.findMany({
+    where: { threadId: { in: subscribedThreadIds }, authorId: { not: studentId } },
+    include: { author: true, thread: { include: { module: true } } },
+    orderBy: { createdAt: "desc" },
+    take: FEED_LIMIT,
+  });
 
   const items: NotificationItem[] = [
     ...gradedSubmissions.map((submission) => ({
@@ -73,6 +88,17 @@ export async function getStudentNotifications(studentId: string): Promise<Notifi
       href: announcement.moduleId
         ? `/student/modules/${announcement.moduleId}`
         : `/student/announcements`,
+    })),
+    ...replies.map((post) => ({
+      id: `discussion-post-${post.id}`,
+      title: `New reply in "${post.thread.title}"`,
+      detail: `${post.author.firstName} ${post.author.lastName}${
+        post.thread.module ? ` · ${post.thread.module.code}` : ""
+      }`,
+      date: post.createdAt,
+      href: post.thread.moduleId
+        ? `/student/modules/${post.thread.moduleId}/discussions/${post.threadId}`
+        : `/student/forums/${post.threadId}`,
     })),
   ]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
