@@ -264,27 +264,32 @@ export async function gradeEssayAnswer(
   return undefined;
 }
 
-export async function publishAttemptResults(attemptId: string, quizId: string) {
+export async function publishAttemptResults(
+  attemptId: string,
+  quizId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
   const lecturer = await requireRole(["LECTURER"]);
   const quiz = await getOwnedQuiz(quizId, lecturer.id);
   if (quiz.kind === "EXAM") {
-    throw new Error("Exam results are published by the Examination Unit, not the lecturer.");
+    return { error: "Exam results are published by the Examination Unit, not the lecturer." };
   }
   if (await isModuleGradesLocked(quiz.moduleId)) {
-    throw new Error(MODULE_GRADES_LOCKED_MESSAGE);
+    return { error: MODULE_GRADES_LOCKED_MESSAGE };
   }
 
   const attempt = await prisma.quizAttempt.findUniqueOrThrow({ where: { id: attemptId } });
   if (attempt.quizId !== quizId || !attempt.submittedAt) {
-    throw new Error("This attempt can't be published.");
+    return { error: "This attempt can't be published." };
   }
-  if (attempt.resultsPublishedAt) return;
+  if (attempt.resultsPublishedAt) return undefined;
 
   const ungradedCount = await prisma.quizAnswer.count({
     where: { attemptId, pointsAwarded: null, question: { type: "ESSAY" } },
   });
   if (ungradedCount > 0) {
-    throw new Error("Grade every essay answer before publishing this attempt's results.");
+    return { error: "Grade every essay answer before publishing this attempt's results." };
   }
 
   const published = await prisma.quizAttempt.update({
@@ -307,4 +312,5 @@ export async function publishAttemptResults(attemptId: string, quizId: string) {
   revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes/${quizId}/results`);
   revalidatePath(`/student/modules/${quiz.moduleId}/quizzes/${quizId}`);
   revalidatePath(`/student/modules/${quiz.moduleId}/quizzes/${quizId}/attempt/${attemptId}`);
+  return undefined;
 }

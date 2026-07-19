@@ -138,7 +138,7 @@ export default async function LecturerQuizResultsPage({
         </Table>
       </div>
 
-      {quiz.kind !== "EXAM" && unpublishedAttempts.length > 0 && (
+      {quiz.kind !== "EXAM" && !locked && unpublishedAttempts.length > 0 && (
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-foreground">Publish results</h2>
           {unpublishedAttempts.map((attempt) => {

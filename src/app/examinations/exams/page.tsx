@@ -106,15 +106,16 @@ export default async function ExaminationUnitExamsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(unpublishedCountByQuizId.get(quiz.id) ?? 0) > 0 && (
-                    <Button
-                      size="sm"
-                      nativeButton={false}
-                      render={<Link href={`/examinations/exams/${quiz.id}/results`} />}
-                    >
-                      Review &amp; publish ({unpublishedCountByQuizId.get(quiz.id)})
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant={(unpublishedCountByQuizId.get(quiz.id) ?? 0) > 0 ? "default" : "outline"}
+                    nativeButton={false}
+                    render={<Link href={`/examinations/exams/${quiz.id}/results`} />}
+                  >
+                    {(unpublishedCountByQuizId.get(quiz.id) ?? 0) > 0
+                      ? `Review & publish (${unpublishedCountByQuizId.get(quiz.id)})`
+                      : "View results"}
+                  </Button>
                   <Badge variant={quiz.status === "SCHEDULED" ? "default" : "secondary"}>
                     {quiz.status === "SCHEDULED" ? "Scheduled" : "Closed"}
                   </Badge>
