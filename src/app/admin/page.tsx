@@ -1,15 +1,21 @@
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatCard } from "@/components/shared/stat-card";
 import { prisma } from "@/lib/db/prisma";
+import { DashboardHeaderCard } from "@/components/student/dashboard-header-card";
+import { MiniCalendarCard } from "@/components/student/mini-calendar-card";
+import { NoticeBoardCard } from "@/components/student/notice-board-card";
+import { ADMIN_PALETTE } from "@/components/admin/palette";
+import { RecentNotificationsCard } from "@/components/admin/recent-notifications-card";
+import { RecentAdmissionsCard } from "@/components/admin/recent-admissions-card";
 import { RegistrationsOverTimeChart } from "@/components/admin/charts/registrations-over-time-chart";
 import { RegistrationStatusChart } from "@/components/admin/charts/registration-status-chart";
 import { PaymentStatusChart } from "@/components/admin/charts/payment-status-chart";
 
-function defaultWindowStart(): Date {
-  return new Date(Date.now() - 30 * 86400000);
-}
-
 export default async function AdminDashboardPage() {
+  const now = new Date();
+  const oneWeekOut = new Date(now.getTime() + 7 * 86400000);
+  const oneDayAgo = new Date(now.getTime() - 86400000);
+
   const [
     pendingRegistrations,
     activeModules,
@@ -20,8 +26,13 @@ export default async function AdminDashboardPage() {
     paymentStatusCounts,
     verifiedPayments,
     assignmentsDue,
-    recentNotifications,
+    recentNotificationCount,
     upcomingExams,
+    pendingApplications,
+    recentNotifications,
+    recentAdmissions,
+    announcements,
+    calendarEvents,
   ] = await Promise.all([
     prisma.semesterRegistration.count({ where: { status: "PENDING" } }),
     prisma.module.count({ where: { isActive: true } }),
@@ -35,37 +46,41 @@ export default async function AdminDashboardPage() {
       select: { amount: true },
     }),
     prisma.contentItem.count({
-      where: {
-        isAssignment: true,
-        dueDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 86400000) },
-      },
+      where: { isAssignment: true, dueDate: { gte: now, lte: oneWeekOut } },
     }),
-    prisma.notificationLog.count({
-      where: { sentAt: { gte: new Date(Date.now() - 86400000) } },
+    prisma.notificationLog.count({ where: { sentAt: { gte: oneDayAgo } } }),
+    prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED", availableFrom: { gte: now } } }),
+    prisma.application.count({ where: { status: "PENDING" } }),
+    prisma.notificationLog.findMany({
+      orderBy: { sentAt: "desc" },
+      take: 5,
+      select: { id: true, type: true, channel: true, recipient: true, status: true, sentAt: true },
     }),
-    prisma.quiz.count({ where: { kind: "EXAM", status: "SCHEDULED", availableFrom: { gte: new Date() } } }),
+    prisma.application.findMany({
+      where: { status: { in: ["APPROVED", "REJECTED"] } },
+      include: { program: true },
+      orderBy: { reviewedAt: "desc" },
+      take: 5,
+    }),
+    prisma.announcement.findMany({
+      where: { scope: "INSTITUTION" },
+      orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
+      take: 4,
+    }),
+    prisma.calendarEvent.findMany({ orderBy: { startDate: "asc" } }),
   ]);
-
-  const pendingApplications = await prisma.application.count({ where: { status: "PENDING" } });
-
-  const stats = [
-    { label: "Pending registrations", value: pendingRegistrations },
-    { label: "Active modules", value: activeModules },
-    { label: "Students", value: students },
-    { label: "Lecturers", value: lecturers },
-  ];
 
   const feeCollected = verifiedPayments.reduce((sum, p) => sum + Number(p.amount), 0);
 
   const homeStats = [
-    { label: "Fee collection", value: `LKR ${feeCollected.toLocaleString()}` },
+    { label: "Pending registrations", value: pendingRegistrations },
     { label: "Assignments due", value: assignmentsDue, hint: "Due within 7 days" },
-    { label: "Notifications", value: recentNotifications, hint: "Last 24 hours" },
+    { label: "Notifications", value: recentNotificationCount, hint: "Last 24 hours" },
     { label: "Pending admissions", value: pendingApplications },
   ];
 
-  const windowStart = activeSemester?.registrationOpensAt ?? defaultWindowStart();
-  const windowEnd = activeSemester?.registrationClosesAt ?? new Date();
+  const windowStart = activeSemester?.registrationOpensAt ?? new Date(now.getTime() - 30 * 86400000);
+  const windowEnd = activeSemester?.registrationClosesAt ?? now;
 
   const attendanceRecords = await prisma.attendanceRecord.findMany({
     where: { occurrenceDate: { gte: windowStart, lte: windowEnd } },
@@ -99,68 +114,109 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of registrations, modules, and users.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader>
-              <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-3xl">{stat.value}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      <DashboardHeaderCard
+        title="Dashboard"
+        subtitle="Overview of registrations, modules, and users."
+        palette={ADMIN_PALETTE}
+        className="bg-gradient-to-br from-[#eef1f8] via-[#f6f0e6] to-[#f2e9dd]"
+        stats={[
+          { label: "Students", value: students },
+          { label: "Lecturers", value: lecturers },
+          { label: "Active modules", value: activeModules },
+          { label: "Fee collection", value: `LKR ${feeCollected.toLocaleString()}` },
+        ]}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {homeStats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} hint={stat.hint} />
         ))}
-        <StatCard label="Online students" comingSoon />
         <StatCard label="Upcoming exams" value={upcomingExams} />
         <StatCard label="Attendance rate" value={attendanceRate} hint="Active semester's registration window" />
       </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Registrations over time</CardTitle>
-            <CardDescription>
-              {activeSemester ? `Within ${activeSemester.name}'s registration window` : "Last 30 days"}
-            </CardDescription>
-          </CardHeader>
-          {registrationsOverTime.length > 0 ? (
-            <RegistrationsOverTimeChart data={registrationsOverTime} />
-          ) : (
-            <p className="px-6 pb-6 text-sm text-muted-foreground">No registrations in this window yet.</p>
-          )}
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Registration status</CardTitle>
-            <CardDescription>All semesters</CardDescription>
-          </CardHeader>
-          {registrationStatusData.length > 0 ? (
-            <RegistrationStatusChart data={registrationStatusData} />
-          ) : (
-            <p className="px-6 pb-6 text-sm text-muted-foreground">No registrations yet.</p>
-          )}
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Payment verification</CardTitle>
-            <CardDescription>All payment records</CardDescription>
-          </CardHeader>
-          {paymentStatusData.length > 0 ? (
-            <PaymentStatusChart data={paymentStatusData} />
-          ) : (
-            <p className="px-6 pb-6 text-sm text-muted-foreground">No payments uploaded yet.</p>
-          )}
-        </Card>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registrations over time</CardTitle>
+                <CardDescription>
+                  {activeSemester ? `Within ${activeSemester.name}'s registration window` : "Last 30 days"}
+                </CardDescription>
+              </CardHeader>
+              {registrationsOverTime.length > 0 ? (
+                <RegistrationsOverTimeChart data={registrationsOverTime} color={ADMIN_PALETTE[0].accent} />
+              ) : (
+                <p className="px-6 pb-6 text-sm text-muted-foreground">No registrations in this window yet.</p>
+              )}
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment verification</CardTitle>
+                <CardDescription>All payment records</CardDescription>
+              </CardHeader>
+              {paymentStatusData.length > 0 ? (
+                <PaymentStatusChart data={paymentStatusData} />
+              ) : (
+                <p className="px-6 pb-6 text-sm text-muted-foreground">No payments uploaded yet.</p>
+              )}
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <RecentNotificationsCard
+              items={recentNotifications.map((item) => ({
+                id: item.id,
+                type: item.type,
+                channel: item.channel,
+                recipient: item.recipient,
+                status: item.status,
+                sentAt: item.sentAt,
+              }))}
+            />
+            <RecentAdmissionsCard
+              items={recentAdmissions.map((application) => ({
+                id: application.id,
+                applicantName: `${application.firstName} ${application.lastName}`,
+                programName: application.program.name,
+                status: application.status as "APPROVED" | "REJECTED",
+                reviewedAt: application.reviewedAt!,
+              }))}
+            />
+          </div>
+
+          <NoticeBoardCard
+            viewAllHref="/admin/announcements"
+            palette={ADMIN_PALETTE}
+            notices={announcements.map((notice) => ({
+              id: notice.id,
+              title: notice.title,
+              publishedAt: notice.publishedAt,
+              moduleCode: null,
+            }))}
+          />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <MiniCalendarCard
+            events={calendarEvents}
+            todayColor={ADMIN_PALETTE[0].accent}
+            dotColor={ADMIN_PALETTE[1].accent}
+            compact
+          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Registration status</CardTitle>
+              <CardDescription>All semesters</CardDescription>
+            </CardHeader>
+            {registrationStatusData.length > 0 ? (
+              <RegistrationStatusChart data={registrationStatusData} />
+            ) : (
+              <p className="px-6 pb-6 text-sm text-muted-foreground">No registrations yet.</p>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );

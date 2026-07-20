@@ -8,15 +8,17 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-const chartConfig = {
-  count: { label: "Registrations", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 export function RegistrationsOverTimeChart({
   data,
+  color = "var(--chart-1)",
 }: {
   data: { date: string; count: number }[];
+  color?: string;
 }) {
+  const chartConfig = {
+    count: { label: "Registrations", color },
+  } satisfies ChartConfig;
+
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
       <AreaChart data={data} margin={{ left: 12, right: 12 }}>

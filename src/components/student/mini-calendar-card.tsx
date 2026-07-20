@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { CalendarEventData } from "@/components/shared/calendar-event-list";
 import type { CalendarEventType } from "@/generated/prisma/enums";
 
@@ -37,10 +38,14 @@ export function MiniCalendarCard({
   events,
   todayColor = "#3FA9D6",
   dotColor = "#3EA9BB",
+  compact = false,
 }: {
   events: CalendarEventData[];
   todayColor?: string;
   dotColor?: string;
+  // Hides the "Calendar" title and lets the grid stretch to the card's full
+  // width (fixed cell height, so it grows wider without growing taller).
+  compact?: boolean;
 }) {
   const [selected, setSelected] = useState<Date | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,9 +93,11 @@ export function MiniCalendarCard({
   return (
     <div ref={containerRef} style={{ "--cal-today": todayColor, "--cal-dot": dotColor } as React.CSSProperties}>
       <Card>
-      <CardHeader>
-        <CardTitle>Calendar</CardTitle>
-      </CardHeader>
+      {!compact && (
+        <CardHeader>
+          <CardTitle>Calendar</CardTitle>
+        </CardHeader>
+      )}
       <div className="flex flex-col gap-4 px-(--card-spacing) pb-(--card-spacing)">
         <Calendar
           mode="single"
@@ -102,8 +109,11 @@ export function MiniCalendarCard({
             hasEvent:
               "relative after:absolute after:bottom-0.5 after:left-1/2 after:block after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-(--cal-dot)",
           }}
-          classNames={{ today: "rounded-full bg-(--cal-today) text-white data-[selected=true]:rounded-none" }}
-          className="mx-auto w-fit p-0 [--cell-size:--spacing(8)]"
+          classNames={{
+            today: "rounded-full bg-(--cal-today) text-white data-[selected=true]:rounded-none",
+            ...(compact && { day_button: "aspect-auto h-8" }),
+          }}
+          className={cn("p-0 [--cell-size:--spacing(8)]", compact ? "w-full" : "mx-auto w-fit")}
         />
 
         {selected ? (

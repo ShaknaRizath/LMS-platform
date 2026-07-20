@@ -43,9 +43,9 @@ export function ActivityCard({
         <CardTitle>Activity</CardTitle>
       </CardHeader>
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) pb-2">
-        <Avatar size="lg">
+        <Avatar size="xl">
           {avatarUrl && <AvatarImage src={avatarUrl} alt={userName} />}
-          <AvatarFallback style={{ backgroundColor: avatarColor.bg, color: avatarColor.fg }} className="text-base font-semibold">
+          <AvatarFallback style={{ backgroundColor: avatarColor.bg, color: avatarColor.fg }} className="text-2xl font-semibold">
             {initials(userName)}
           </AvatarFallback>
         </Avatar>
