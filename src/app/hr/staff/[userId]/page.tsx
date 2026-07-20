@@ -40,7 +40,7 @@ export default async function HrStaffDetailPage({
         </CardHeader>
         <CardContent>
           <StaffEmploymentForm
-            userId={userId}
+            formKey={staffMember.updatedAt.getTime()}
             action={updateStaffEmploymentDetails.bind(null, userId)}
             defaultValues={{
               jobTitle: staffMember.jobTitle,

@@ -13,7 +13,7 @@ import { ActivityCard, type ActivityItem } from "@/components/student/activity-c
 export default async function StudentDashboardPage() {
   const student = await requireRole(["STUDENT"]);
 
-  const [latestRegistration, activeEnrollments, calendarEvents] = await Promise.all([
+  const [latestRegistration, activeEnrollments, calendarEvents, profile] = await Promise.all([
     prisma.semesterRegistration.findFirst({
       where: { studentId: student.id },
       orderBy: { createdAt: "desc" },
@@ -32,6 +32,7 @@ export default async function StudentDashboardPage() {
       orderBy: { module: { code: "asc" } },
     }),
     prisma.calendarEvent.findMany({ orderBy: { startDate: "asc" } }),
+    prisma.user.findUnique({ where: { id: student.id }, select: { avatarUrl: true } }),
   ]);
 
   const activeModuleIds = activeEnrollments
@@ -185,6 +186,7 @@ export default async function StudentDashboardPage() {
         <ActivityCard
           className="lg:row-span-2"
           studentName={student.name ?? student.email ?? "Student"}
+          avatarUrl={profile?.avatarUrl}
           activity={activity}
         />
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DetailSummary } from "@/components/admin/detail-summary";
 
 function initials(name: string) {
@@ -35,6 +35,7 @@ export default async function StudentProfilePage() {
       <Card className="max-w-xl">
         <CardHeader className="flex flex-row items-center gap-4">
           <Avatar size="lg">
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={fullName} />}
             <AvatarFallback className="bg-secondary text-secondary-foreground">
               {initials(fullName)}
             </AvatarFallback>
@@ -52,6 +53,10 @@ export default async function StudentProfilePage() {
               { label: "Email", value: user.email },
               { label: "Phone", value: user.phone },
               { label: "Program", value: user.program?.name },
+              { label: "Date of birth", value: user.dateOfBirth?.toLocaleDateString() },
+              { label: "Address", value: user.address },
+              { label: "Guardian / emergency contact", value: user.guardianName },
+              { label: "Guardian / emergency contact phone", value: user.guardianPhone },
             ]}
           />
           <Button nativeButton={false} render={<Link href="/student/profile/edit" />} className="self-start">
