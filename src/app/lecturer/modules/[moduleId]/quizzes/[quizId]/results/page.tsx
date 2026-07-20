@@ -197,6 +197,7 @@ export default async function LecturerQuizResultsPage({
                       quizId={quizId}
                       maxPoints={answer.question.points}
                       currentPoints={answer.pointsAwarded}
+                      locked={locked}
                     />
                   </div>
                 </div>
@@ -219,6 +220,7 @@ export default async function LecturerQuizResultsPage({
                       quizId={quizId}
                       maxPoints={answer.question.points}
                       currentPoints={answer.pointsAwarded}
+                      locked={locked}
                     />
                   </div>
                 </div>

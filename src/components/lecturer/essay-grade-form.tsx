@@ -12,16 +12,22 @@ export function EssayGradeForm({
   quizId,
   maxPoints,
   currentPoints,
+  locked = false,
 }: {
   answerId: string;
   quizId: string;
   maxPoints: number;
   currentPoints: number | null;
+  locked?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     gradeEssayAnswer.bind(null, answerId, quizId),
     undefined
   );
+
+  if (locked) {
+    return <p className="text-sm text-muted-foreground">Marks are locked — grading is disabled.</p>;
+  }
 
   return (
     <form action={formAction} className="flex items-end gap-2">

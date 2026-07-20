@@ -33,3 +33,30 @@ export async function requireRole(allowedRoles: Role[]) {
 
   return { ...session.user, role: user.role, programId: user.programId };
 }
+
+/**
+ * Same authoritative checks as requireRole, minus the role restriction — for actions
+ * any active, logged-in user may take regardless of role (e.g. marking one of their
+ * own notification-bell items read).
+ */
+export async function requireUser() {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, role: true, isActive: true, programId: true },
+  });
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!user.isActive) {
+    redirect("/unauthorized");
+  }
+
+  return { ...session.user, role: user.role, programId: user.programId };
+}

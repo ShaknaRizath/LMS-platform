@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import { markNotificationRead } from "@/lib/actions/student/notification.actions";
+import { markNotificationRead } from "@/lib/actions/shared/notification.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
