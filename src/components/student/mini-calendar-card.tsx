@@ -33,7 +33,15 @@ function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-export function MiniCalendarCard({ events }: { events: CalendarEventData[] }) {
+export function MiniCalendarCard({
+  events,
+  todayColor = "#3FA9D6",
+  dotColor = "#3EA9BB",
+}: {
+  events: CalendarEventData[];
+  todayColor?: string;
+  dotColor?: string;
+}) {
   const [selected, setSelected] = useState<Date | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const now = new Date();
@@ -67,10 +75,18 @@ export function MiniCalendarCard({ events }: { events: CalendarEventData[] }) {
       )
     : [];
 
-  const modifiers = { hasEvent: events.flatMap((event) => eachDay(event.startDate, event.endDate ?? event.startDate)) };
+  const modifiers = {
+    // Excludes today so the event dot never renders on top of the today circle —
+    // the circle itself is already today's indicator, and stacking a same-colored
+    // dot on it is redundant (and only became visible once the dot color no longer
+    // happened to blend into the circle color).
+    hasEvent: events
+      .flatMap((event) => eachDay(event.startDate, event.endDate ?? event.startDate))
+      .filter((day) => !isSameDay(day, now)),
+  };
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} style={{ "--cal-today": todayColor, "--cal-dot": dotColor } as React.CSSProperties}>
       <Card>
       <CardHeader>
         <CardTitle>Calendar</CardTitle>
@@ -84,9 +100,9 @@ export function MiniCalendarCard({ events }: { events: CalendarEventData[] }) {
           modifiers={modifiers}
           modifiersClassNames={{
             hasEvent:
-              "relative after:absolute after:bottom-0.5 after:left-1/2 after:block after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-[#3EA9BB]",
+              "relative after:absolute after:bottom-0.5 after:left-1/2 after:block after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-(--cal-dot)",
           }}
-          classNames={{ today: "rounded-full bg-[#3FA9D6] text-white data-[selected=true]:rounded-none" }}
+          classNames={{ today: "rounded-full bg-(--cal-today) text-white data-[selected=true]:rounded-none" }}
           className="mx-auto w-fit p-0 [--cell-size:--spacing(8)]"
         />
 

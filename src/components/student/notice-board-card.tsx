@@ -3,6 +3,8 @@ import { ChevronRight, Megaphone } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { STUDENT_PALETTE } from "@/components/student/palette";
 
+type PaletteColor = { bg: string; fg: string; accent: string };
+
 export type NoticeSummary = {
   id: string;
   title: string;
@@ -10,14 +12,22 @@ export type NoticeSummary = {
   moduleCode: string | null;
 };
 
-export function NoticeBoardCard({ notices }: { notices: NoticeSummary[] }) {
+export function NoticeBoardCard({
+  notices,
+  viewAllHref = "/student/announcements",
+  palette = STUDENT_PALETTE,
+}: {
+  notices: NoticeSummary[];
+  viewAllHref?: string;
+  palette?: readonly PaletteColor[];
+}) {
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Notice Board</CardTitle>
           <Link
-            href="/student/announcements"
+            href={viewAllHref}
             className="flex items-center text-xs font-medium text-muted-foreground hover:text-foreground"
           >
             View All <ChevronRight className="size-3.5" />
@@ -29,11 +39,11 @@ export function NoticeBoardCard({ notices }: { notices: NoticeSummary[] }) {
           <p className="text-sm text-muted-foreground">No announcements yet.</p>
         ) : (
           notices.map((notice, index) => {
-            const color = STUDENT_PALETTE[index % STUDENT_PALETTE.length];
+            const color = palette[index % palette.length];
             return (
               <Link
                 key={notice.id}
-                href="/student/announcements"
+                href={viewAllHref}
                 className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/60"
               >
                 <div

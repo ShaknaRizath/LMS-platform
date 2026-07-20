@@ -1,17 +1,23 @@
 import { Card } from "@/components/ui/card";
 import { STUDENT_PALETTE } from "@/components/student/palette";
 
+type PaletteColor = { bg: string; fg: string; accent: string };
+
 export function DashboardHeaderCard({
   title,
   subtitle,
   stats,
+  palette = STUDENT_PALETTE,
+  className = "bg-gradient-to-br from-[#f2fbfd] via-[#eefaf6] to-[#eefbf2]",
 }: {
   title: string;
   subtitle: string;
   stats: { label: string; value: React.ReactNode }[];
+  palette?: readonly PaletteColor[];
+  className?: string;
 }) {
   return (
-    <Card className="border-none bg-gradient-to-br from-[#f2fbfd] via-[#eefaf6] to-[#eefbf2] p-0">
+    <Card className={`border-none p-0 ${className}`}>
       <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
@@ -19,7 +25,7 @@ export function DashboardHeaderCard({
         </div>
         <div className="flex flex-wrap gap-3">
           {stats.map((stat, index) => {
-            const color = STUDENT_PALETTE[index % STUDENT_PALETTE.length];
+            const color = palette[index % palette.length];
             return (
               <div
                 key={stat.label}

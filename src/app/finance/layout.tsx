@@ -40,6 +40,7 @@ export default async function FinanceLayout({
       userName={user.name ?? user.email ?? "Finance"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"
+      profileHref="/finance/profile"
       notifications={notifications}
     >
       {children}

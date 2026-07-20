@@ -3,6 +3,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { STUDENT_PALETTE } from "@/components/student/palette";
 
+type PaletteColor = { bg: string; fg: string; accent: string };
+
 export type ActivityItem = {
   id: string;
   label: string;
@@ -21,16 +23,20 @@ function initials(name: string) {
 }
 
 export function ActivityCard({
-  studentName,
+  userName,
   avatarUrl,
   activity,
+  palette = STUDENT_PALETTE,
   className,
 }: {
-  studentName: string;
+  userName: string;
   avatarUrl?: string | null;
   activity: ActivityItem[];
+  palette?: readonly PaletteColor[];
   className?: string;
 }) {
+  const avatarColor = palette[1] ?? palette[0];
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -38,12 +44,12 @@ export function ActivityCard({
       </CardHeader>
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) pb-2">
         <Avatar size="lg">
-          {avatarUrl && <AvatarImage src={avatarUrl} alt={studentName} />}
-          <AvatarFallback className="bg-[#9AD9E3] text-base font-semibold text-[#0B5866]">
-            {initials(studentName)}
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={userName} />}
+          <AvatarFallback style={{ backgroundColor: avatarColor.bg, color: avatarColor.fg }} className="text-base font-semibold">
+            {initials(userName)}
           </AvatarFallback>
         </Avatar>
-        <p className="mt-2 font-medium text-foreground">{studentName}</p>
+        <p className="mt-2 font-medium text-foreground">{userName}</p>
       </div>
       <div className="flex flex-col gap-1 px-(--card-spacing) pb-(--card-spacing)">
         <p className="mb-1 text-xs font-medium text-muted-foreground">Recent activity</p>
@@ -51,7 +57,7 @@ export function ActivityCard({
           <p className="text-sm text-muted-foreground">Nothing new yet.</p>
         ) : (
           activity.map((item, index) => {
-            const color = STUDENT_PALETTE[index % STUDENT_PALETTE.length];
+            const color = palette[index % palette.length];
             const Icon = item.kind === "grade" ? Award : FileText;
             return (
               <div key={item.id} className="flex items-start gap-3 rounded-lg p-2">

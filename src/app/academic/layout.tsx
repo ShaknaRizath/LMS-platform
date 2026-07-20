@@ -1,5 +1,7 @@
 import { LayoutDashboard, BarChart3, ShieldAlert } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
+import { prisma } from "@/lib/db/prisma";
+import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 const navItems: NavItem[] = [
@@ -15,6 +17,20 @@ export default async function AcademicDirectorLayout({
 }) {
   const user = await requireRole(["ACADEMIC_DIRECTOR"]);
 
+  const [notificationItems, readRows] = await Promise.all([
+    getStaffLeaveNotifications(user.id),
+    prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
+  ]);
+  const readKeys = new Set(readRows.map((row) => row.key));
+  const notifications = notificationItems.map((item) => ({
+    id: item.id,
+    title: item.title,
+    detail: item.detail,
+    href: item.href,
+    date: item.date.toISOString(),
+    unread: !readKeys.has(item.id),
+  }));
+
   return (
     <DashboardShell
       roleLabel="Academic Director"
@@ -22,6 +38,8 @@ export default async function AcademicDirectorLayout({
       userName={user.name ?? user.email ?? "Academic Director"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"
+      profileHref="/academic/profile"
+      notifications={notifications}
     >
       {children}
     </DashboardShell>

@@ -5,6 +5,7 @@ import type { ActionState } from "@/lib/actions/action-state";
 import { ATTENDANCE_STATUSES } from "@/lib/validation/attendance.schema";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
+import { LECTURER_PALETTE } from "@/components/lecturer/palette";
 
 const STATUS_LABELS: Record<(typeof ATTENDANCE_STATUSES)[number], string> = {
   PRESENT: "Present",
@@ -49,6 +50,7 @@ export function AttendanceRosterForm({
                       name={fieldName}
                       value={status}
                       defaultChecked={current === status}
+                      style={{ accentColor: LECTURER_PALETTE[3].accent }}
                     />
                     {STATUS_LABELS[status]}
                   </label>

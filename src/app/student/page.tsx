@@ -185,7 +185,7 @@ export default async function StudentDashboardPage() {
         <MiniCalendarCard events={calendarEvents} />
         <ActivityCard
           className="lg:row-span-2"
-          studentName={student.name ?? student.email ?? "Student"}
+          userName={student.name ?? student.email ?? "Student"}
           avatarUrl={profile?.avatarUrl}
           activity={activity}
         />

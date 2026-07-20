@@ -1,17 +1,33 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { STUDENT_PALETTE } from "@/components/student/palette";
 
-export function ProgressCard({ submitted, total }: { submitted: number; total: number }) {
+type PaletteColor = { bg: string; fg: string; accent: string };
+
+export function ProgressCard({
+  title = "Progress",
+  label = "Assignments submitted",
+  submitted,
+  total,
+  emptyLabel = "No assignments yet",
+  palette = STUDENT_PALETTE,
+}: {
+  title?: string;
+  label?: string;
+  submitted: number;
+  total: number;
+  emptyLabel?: string;
+  palette?: readonly PaletteColor[];
+}) {
   const percent = total > 0 ? Math.round((submitted / total) * 100) : 0;
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - percent / 100);
-  const ring = STUDENT_PALETTE[0];
+  const ring = palette[0];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Progress</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <div className="flex flex-col items-center gap-3 px-(--card-spacing) pb-(--card-spacing)">
         <div className="relative flex size-[120px] items-center justify-center">
@@ -32,9 +48,9 @@ export function ProgressCard({ submitted, total }: { submitted: number; total: n
           <span className="absolute text-3xl font-semibold text-foreground">{percent}%</span>
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium text-foreground">Assignments submitted</p>
+          <p className="text-sm font-medium text-foreground">{label}</p>
           <p className="text-xs text-muted-foreground">
-            {total > 0 ? `${submitted} of ${total} submitted` : "No assignments yet"}
+            {total > 0 ? `${submitted} of ${total} submitted` : emptyLabel}
           </p>
         </div>
       </div>

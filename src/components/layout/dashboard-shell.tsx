@@ -9,6 +9,7 @@ import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { LECTURER_PALETTE } from "@/components/lecturer/palette";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,12 +24,36 @@ function useLecturerModuleNavItems(pathname: string): NavItem[] {
   const moduleId = match?.[1];
   if (!moduleId) return [];
   return [
-    { href: `/lecturer/modules/${moduleId}/assignments`, label: "Assignments", icon: <ClipboardList className="size-4" /> },
-    { href: `/lecturer/modules/${moduleId}/quizzes`, label: "Quizzes", icon: <ListChecks className="size-4" /> },
-    { href: `/lecturer/modules/${moduleId}/discussions`, label: "Discussions", icon: <MessagesSquare className="size-4" /> },
-    { href: `/lecturer/modules/${moduleId}/announcements`, label: "Announcements", icon: <Megaphone className="size-4" /> },
-    { href: `/lecturer/modules/${moduleId}/attendance`, label: "Attendance", icon: <CalendarCheck className="size-4" /> },
-    { href: `/lecturer/modules/${moduleId}/gradebook`, label: "Grade Book", icon: <ClipboardCheck className="size-4" /> },
+    {
+      href: `/lecturer/modules/${moduleId}/assignments`,
+      label: "Assignments",
+      icon: <ClipboardList className="size-4" style={{ color: LECTURER_PALETTE[0].accent }} />,
+    },
+    {
+      href: `/lecturer/modules/${moduleId}/quizzes`,
+      label: "Quizzes",
+      icon: <ListChecks className="size-4" style={{ color: LECTURER_PALETTE[1].accent }} />,
+    },
+    {
+      href: `/lecturer/modules/${moduleId}/discussions`,
+      label: "Discussions",
+      icon: <MessagesSquare className="size-4" style={{ color: LECTURER_PALETTE[2].accent }} />,
+    },
+    {
+      href: `/lecturer/modules/${moduleId}/announcements`,
+      label: "Announcements",
+      icon: <Megaphone className="size-4" style={{ color: LECTURER_PALETTE[3].accent }} />,
+    },
+    {
+      href: `/lecturer/modules/${moduleId}/attendance`,
+      label: "Attendance",
+      icon: <CalendarCheck className="size-4" style={{ color: LECTURER_PALETTE[4].accent }} />,
+    },
+    {
+      href: `/lecturer/modules/${moduleId}/gradebook`,
+      label: "Grade Book",
+      icon: <ClipboardCheck className="size-4" style={{ color: LECTURER_PALETTE[0].accent }} />,
+    },
   ];
 }
 
@@ -167,7 +192,7 @@ export function DashboardShell({
                     render={
                       <Link
                         href={leaveHref}
-                        className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       />
                     }
                   >

@@ -40,6 +40,7 @@ export default async function ProgramCoordinatorLayout({
       userName={user.name ?? user.email ?? "Program Coordinator"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"
+      profileHref="/coordinator/profile"
       notifications={notifications}
     >
       {children}

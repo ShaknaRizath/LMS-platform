@@ -38,6 +38,7 @@ export default async function HrOfficerLayout({
       userName={user.name ?? user.email ?? "HR Officer"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"
+      profileHref="/hr/profile"
       notifications={notifications}
     >
       {children}
