@@ -198,6 +198,7 @@ model User {
   phone        String?
   role         Role
   isActive     Boolean @default(true)
+  avatarUrl    String?
 
   // Only meaningful for STUDENT role: assigned lazily on first transcript issuance, not at
   // admission — see ensureRegistrationNumber in transcript.actions.ts.
@@ -207,6 +208,13 @@ model User {
   // SetNull rather than Cascade: deleting a Program should not delete student accounts.
   programId String?
   program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  // Only meaningful for STUDENT role: personal/emergency details, self-service editable
+  // via updateProfile (src/lib/actions/student/profile.actions.ts).
+  dateOfBirth   DateTime?
+  address       String?   @db.Text
+  guardianName  String?
+  guardianPhone String?
 
   // Only meaningful for non-STUDENT roles: employment/HR record, editable by HR_OFFICER via
   // updateStaffEmploymentDetails (deliberately a separate action from updateUser — identity/
@@ -245,18 +253,18 @@ model User {
   attendanceRecordsMarked   AttendanceRecord[]         @relation("AttendanceMarkedBy")
   applicationsReviewed      Application[]              @relation("ApplicationReviewedBy")
   applicationCreated        Application?               @relation("ApplicationCreatedUser")
-  moduleGradeLocksApplied   ModuleGradeLock[]           @relation("ModuleGradeLockedBy")
-  moduleGradeLocksRemoved   ModuleGradeLock[]           @relation("ModuleGradeUnlockedBy")
-  invigilatedExams          Quiz[]                      @relation("QuizInvigilator")
-  transcriptsEarned         Transcript[]                @relation("TranscriptStudent")
-  transcriptsIssued         Transcript[]                @relation("TranscriptIssuedBy")
-  leaveRequestsSubmitted    StaffLeaveRequest[]         @relation("StaffLeaveRequests")
-  leaveRequestsDecided      StaffLeaveRequest[]         @relation("StaffLeaveDecidedBy")
-  scholarshipsApplied       Scholarship[]               @relation("ScholarshipStudent")
-  scholarshipsDecided       Scholarship[]               @relation("ScholarshipDecidedBy")
-  disciplineCasesAsStudent  DisciplineCase[]             @relation("DisciplineCaseStudent")
-  disciplineCasesReported   DisciplineCase[]             @relation("DisciplineCaseReportedBy")
-  disciplineCasesResolved   DisciplineCase[]             @relation("DisciplineCaseResolvedBy")
+  moduleGradeLocksApplied   ModuleGradeLock[]          @relation("ModuleGradeLockedBy")
+  moduleGradeLocksRemoved   ModuleGradeLock[]          @relation("ModuleGradeUnlockedBy")
+  invigilatedExams          Quiz[]                     @relation("QuizInvigilator")
+  transcriptsEarned         Transcript[]               @relation("TranscriptStudent")
+  transcriptsIssued         Transcript[]               @relation("TranscriptIssuedBy")
+  leaveRequestsSubmitted    StaffLeaveRequest[]        @relation("StaffLeaveRequests")
+  leaveRequestsDecided      StaffLeaveRequest[]        @relation("StaffLeaveDecidedBy")
+  scholarshipsApplied       Scholarship[]              @relation("ScholarshipStudent")
+  scholarshipsDecided       Scholarship[]              @relation("ScholarshipDecidedBy")
+  disciplineCasesAsStudent  DisciplineCase[]           @relation("DisciplineCaseStudent")
+  disciplineCasesReported   DisciplineCase[]           @relation("DisciplineCaseReportedBy")
+  disciplineCasesResolved   DisciplineCase[]           @relation("DisciplineCaseResolvedBy")
 
   @@index([role])
 }
@@ -581,12 +589,12 @@ model Submission {
 // publish path differs (see QuizStatus comment above).
 
 model Quiz {
-  id          String     @id @default(cuid())
-  moduleId    String
-  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  kind        QuizKind   @default(QUIZ)
-  title       String
-  description String?
+  id               String     @id @default(cuid())
+  moduleId         String
+  module           Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  kind             QuizKind   @default(QUIZ)
+  title            String
+  description      String?
   timeLimitMinutes Int?
   maxAttempts      Int        @default(1)
   status           QuizStatus @default(DRAFT)
@@ -600,7 +608,7 @@ model Quiz {
   availableFrom  DateTime?
   availableUntil DateTime?
   scheduledById  String?
-  scheduledBy    User?      @relation("QuizScheduledBy", fields: [scheduledById], references: [id], onDelete: SetNull)
+  scheduledBy    User?     @relation("QuizScheduledBy", fields: [scheduledById], references: [id], onDelete: SetNull)
 
   // EXAM only, set alongside availableFrom/availableUntil by scheduleExam. Conflict-checked
   // against other SCHEDULED exams for the same venue/invigilator (see checkExamConflict).
@@ -656,17 +664,17 @@ model QuizOption {
 }
 
 model QuizAttempt {
-  id            String    @id @default(cuid())
-  quizId        String
-  quiz          Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  studentId     String
-  student       User      @relation("QuizAttemptStudent", fields: [studentId], references: [id])
-  attemptNumber Int
-  startedAt     DateTime  @default(now())
-  submittedAt   DateTime?
+  id                 String    @id @default(cuid())
+  quizId             String
+  quiz               Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            User      @relation("QuizAttemptStudent", fields: [studentId], references: [id])
+  attemptNumber      Int
+  startedAt          DateTime  @default(now())
+  submittedAt        DateTime?
   // Populated together at submit time — auto-graded, no separate "gradedAt" step.
-  pointsEarned  Int?
-  totalPoints   Int?
+  pointsEarned       Int?
+  totalPoints        Int?
   // When the score/answer breakdown becomes visible to the student. Set immediately
   // at submit time for quizzes with no ESSAY questions (nothing left to grade). For
   // quizzes containing an ESSAY question, stays null until the lecturer explicitly
@@ -1077,7 +1085,7 @@ model NotificationLog {
   recipient       String // email address or phone number, depending on channel
   recipientUserId String?
   subject         String? // meaningful for EMAIL only; null for SMS/WhatsApp
-  body            String? @db.Text // the actual message content sent, for audit
+  body            String?             @db.Text // the actual message content sent, for audit
   status          NotificationStatus
   error           String?
   meta            Json?
