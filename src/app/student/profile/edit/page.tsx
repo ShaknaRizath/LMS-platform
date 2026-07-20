@@ -21,7 +21,17 @@ export default async function StudentEditProfilePage() {
         </CardHeader>
         <CardContent>
           <ProfileForm
-            defaultValues={{ firstName: user.firstName, lastName: user.lastName, phone: user.phone }}
+            studentId={user.id}
+            defaultValues={{
+              firstName: user.firstName,
+              lastName: user.lastName,
+              phone: user.phone,
+              dateOfBirth: user.dateOfBirth,
+              address: user.address,
+              guardianName: user.guardianName,
+              guardianPhone: user.guardianPhone,
+              avatarUrl: user.avatarUrl,
+            }}
           />
         </CardContent>
       </Card>

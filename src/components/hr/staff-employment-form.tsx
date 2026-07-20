@@ -27,11 +27,11 @@ function toDateInputValue(date: Date | null): string {
 }
 
 export function StaffEmploymentForm({
-  userId,
+  formKey,
   action,
   defaultValues,
 }: {
-  userId: string;
+  formKey: string | number;
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   defaultValues: {
     jobTitle: string | null;
@@ -44,7 +44,7 @@ export function StaffEmploymentForm({
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined);
 
   return (
-    <form action={formAction} key={userId} className="flex flex-col gap-4">
+    <form action={formAction} key={formKey} className="flex flex-col gap-4">
       <FieldGroup>
         <Field orientation="responsive">
           <Field>

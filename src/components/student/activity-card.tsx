@@ -1,6 +1,6 @@
 import { Award, FileText } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { STUDENT_PALETTE } from "@/components/student/palette";
 
 export type ActivityItem = {
@@ -22,10 +22,12 @@ function initials(name: string) {
 
 export function ActivityCard({
   studentName,
+  avatarUrl,
   activity,
   className,
 }: {
   studentName: string;
+  avatarUrl?: string | null;
   activity: ActivityItem[];
   className?: string;
 }) {
@@ -36,6 +38,7 @@ export function ActivityCard({
       </CardHeader>
       <div className="flex flex-col items-center gap-1 px-(--card-spacing) pb-2">
         <Avatar size="lg">
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={studentName} />}
           <AvatarFallback className="bg-[#9AD9E3] text-base font-semibold text-[#0B5866]">
             {initials(studentName)}
           </AvatarFallback>
