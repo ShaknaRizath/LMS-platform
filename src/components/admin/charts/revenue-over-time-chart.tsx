@@ -8,15 +8,17 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-const chartConfig = {
-  amount: { label: "Revenue (LKR)", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
 export function RevenueOverTimeChart({
   data,
+  color = "var(--chart-4)",
 }: {
   data: { date: string; amount: number }[];
+  color?: string;
 }) {
+  const chartConfig = {
+    amount: { label: "Revenue (LKR)", color },
+  } satisfies ChartConfig;
+
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
       <AreaChart data={data} margin={{ left: 12, right: 12 }}>
