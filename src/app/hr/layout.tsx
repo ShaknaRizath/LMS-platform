@@ -4,10 +4,13 @@ import { prisma } from "@/lib/db/prisma";
 import { getHrNotifications } from "@/lib/notifications/hr-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
+// Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator and
+// Finance dashboards (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than
+// an HR-specific swatch — same per-icon coloring convention as every other layout.
 const navItems: NavItem[] = [
-  { href: "/hr", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
-  { href: "/hr/staff", label: "Staff Directory", icon: <Users className="size-4" /> },
-  { href: "/hr/leave", label: "Leave Requests", icon: <CalendarClock className="size-4" /> },
+  { href: "/hr", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
+  { href: "/hr/staff", label: "Staff Directory", icon: <Users className="size-4 text-[#8FA6E3]" /> },
+  { href: "/hr/leave", label: "Leave Requests", icon: <CalendarClock className="size-4 text-[#4356C4]" /> },
 ];
 
 export default async function HrOfficerLayout({
@@ -40,6 +43,7 @@ export default async function HrOfficerLayout({
       leaveHref="/staff/leave"
       profileHref="/hr/profile"
       notifications={notifications}
+      contentBackgroundClassName="bg-gradient-to-b from-[#eef0fd] via-[#eceffa] to-white"
     >
       {children}
     </DashboardShell>

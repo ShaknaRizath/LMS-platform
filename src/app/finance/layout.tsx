@@ -4,12 +4,15 @@ import { prisma } from "@/lib/db/prisma";
 import { getFinanceNotifications } from "@/lib/notifications/finance-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
+// Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator dashboard
+// (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than a Finance-specific
+// swatch — same per-icon coloring convention as every other layout (see src/app/student/layout.tsx).
 const navItems: NavItem[] = [
-  { href: "/finance", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
-  { href: "/finance/registrations", label: "Registrations", icon: <ClipboardCheck className="size-4" /> },
-  { href: "/finance/programs", label: "Programs & Fees", icon: <GraduationCap className="size-4" /> },
-  { href: "/finance/scholarships", label: "Scholarships", icon: <HandCoins className="size-4" /> },
-  { href: "/finance/reports", label: "Reports", icon: <BarChart3 className="size-4" /> },
+  { href: "/finance", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
+  { href: "/finance/registrations", label: "Registrations", icon: <ClipboardCheck className="size-4 text-[#4356C4]" /> },
+  { href: "/finance/programs", label: "Programs & Fees", icon: <GraduationCap className="size-4 text-[#8FA6E3]" /> },
+  { href: "/finance/scholarships", label: "Scholarships", icon: <HandCoins className="size-4 text-[#140F91]" /> },
+  { href: "/finance/reports", label: "Reports", icon: <BarChart3 className="size-4 text-[#5D6685]" /> },
 ];
 
 export default async function FinanceLayout({
@@ -42,6 +45,7 @@ export default async function FinanceLayout({
       leaveHref="/staff/leave"
       profileHref="/finance/profile"
       notifications={notifications}
+      contentBackgroundClassName="bg-gradient-to-b from-[#eef0fd] via-[#eceffa] to-white"
     >
       {children}
     </DashboardShell>
