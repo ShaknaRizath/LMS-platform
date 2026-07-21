@@ -2,7 +2,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { prisma } from "@/lib/db/prisma";
 import { RevenueOverTimeChart } from "@/components/admin/charts/revenue-over-time-chart";
 import { PaymentStatusChart } from "@/components/admin/charts/payment-status-chart";
-import { getOutstandingBalances, collectionRateFromRows, getRevenueByProgram } from "@/lib/finance/reports";
+import {
+  getOutstandingBalances,
+  collectionRateFromRows,
+  getRevenueByProgram,
+  getRevenueOverTime,
+} from "@/lib/finance/reports";
 import {
   Table,
   TableBody,
@@ -13,28 +18,23 @@ import {
 } from "@/components/ui/table";
 
 export default async function FinanceReportsPage() {
-  const [verifiedPayments, paymentStatusCounts, { rows: outstandingRows, totalOutstanding }, revenueByProgram] =
+  // All-time, not a rolling window — same "no expiry" semantics this page always had.
+  const allTimeRange = { from: new Date(0), to: new Date() };
+
+  const [verifiedPayments, paymentStatusCounts, { rows: outstandingRows, totalOutstanding }, revenueByProgram, revenueOverTime] =
     await Promise.all([
       prisma.paymentRecord.findMany({
         where: { verificationStatus: "VERIFIED" },
-        select: { amount: true, verifiedAt: true },
-        orderBy: { verifiedAt: "asc" },
+        select: { amount: true },
       }),
       prisma.paymentRecord.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
       getOutstandingBalances(),
       getRevenueByProgram(),
+      getRevenueOverTime(allTimeRange),
     ]);
 
   const totalRevenue = verifiedPayments.reduce((sum, p) => sum + Number(p.amount), 0);
   const { rate: collectionRate } = collectionRateFromRows(outstandingRows);
-
-  const byDay = new Map<string, number>();
-  for (const payment of verifiedPayments) {
-    if (!payment.verifiedAt) continue;
-    const key = payment.verifiedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    byDay.set(key, (byDay.get(key) ?? 0) + Number(payment.amount));
-  }
-  const revenueOverTime = Array.from(byDay.entries()).map(([date, amount]) => ({ date, amount }));
 
   const paymentStatusData = paymentStatusCounts.map((row) => ({
     status: row.verificationStatus,

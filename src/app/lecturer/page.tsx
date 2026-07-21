@@ -159,6 +159,8 @@ export default async function LecturerDashboardPage() {
           events={calendarEvents}
           todayColor={LECTURER_PALETTE[3].accent}
           dotColor={LECTURER_PALETTE[0].accent}
+          flatBackground
+          monthTitleHeader
         />
         <ActivityCard
           className="lg:row-span-2"

@@ -182,7 +182,7 @@ export default async function StudentDashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <AssignmentsCard items={todoItems} />
         <ProgressCard submitted={submittedCount} total={allAssignments} />
-        <MiniCalendarCard events={calendarEvents} />
+        <MiniCalendarCard events={calendarEvents} flatBackground monthTitleHeader />
         <ActivityCard
           className="lg:row-span-2"
           userName={student.name ?? student.email ?? "Student"}
