@@ -204,6 +204,8 @@ export default async function AdminDashboardPage() {
             todayColor={ADMIN_PALETTE[0].accent}
             dotColor={ADMIN_PALETTE[1].accent}
             compact
+            flatBackground
+            monthTitleHeader
           />
           <Card>
             <CardHeader>

@@ -265,8 +265,24 @@ model User {
   disciplineCasesAsStudent  DisciplineCase[]           @relation("DisciplineCaseStudent")
   disciplineCasesReported   DisciplineCase[]           @relation("DisciplineCaseReportedBy")
   disciplineCasesResolved   DisciplineCase[]           @relation("DisciplineCaseResolvedBy")
+  staffNotes                StaffNote[]
 
   @@index([role])
+}
+
+// Private quick-notes a staff member jots for themselves — no sharing/visibility scope beyond
+// the author, so unlike every other model here there's no reviewer/decider side.
+model StaffNote {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  isStarred Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
 }
 
 model PasswordResetToken {

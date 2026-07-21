@@ -4,9 +4,12 @@ import { prisma } from "@/lib/db/prisma";
 import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
+// Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator and
+// Finance dashboards (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than
+// a Marketing-specific swatch — same per-icon coloring convention as every other layout.
 const navItems: NavItem[] = [
-  { href: "/marketing", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
-  { href: "/marketing/applications", label: "Applications", icon: <Inbox className="size-4" /> },
+  { href: "/marketing", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
+  { href: "/marketing/applications", label: "Applications", icon: <Inbox className="size-4 text-[#4356C4]" /> },
 ];
 
 export default async function MarketingOfficerLayout({
@@ -39,6 +42,7 @@ export default async function MarketingOfficerLayout({
       leaveHref="/staff/leave"
       profileHref="/marketing/profile"
       notifications={notifications}
+      contentBackgroundClassName="bg-gradient-to-b from-[#eef0fd] via-[#eceffa] to-white"
     >
       {children}
     </DashboardShell>
