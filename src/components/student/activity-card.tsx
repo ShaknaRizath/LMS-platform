@@ -1,4 +1,17 @@
-import { Award, FileText } from "lucide-react";
+import {
+  Award,
+  FileText,
+  Wallet,
+  HandCoins,
+  ClipboardCheck,
+  GraduationCap,
+  CalendarClock,
+  ClipboardList,
+  CheckCircle2,
+  BadgeCheck,
+  ScrollText,
+  Lock,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { STUDENT_PALETTE } from "@/components/student/palette";
@@ -10,8 +23,35 @@ export type ActivityItem = {
   label: string;
   detail: string;
   date: Date;
-  kind: "content" | "grade";
+  kind:
+    | "content"
+    | "grade"
+    | "payment"
+    | "scholarship"
+    | "registration"
+    | "fee"
+    | "leave"
+    | "exam"
+    | "result"
+    | "certificate"
+    | "transcript"
+    | "lock";
 };
+
+const KIND_ICONS = {
+  content: FileText,
+  grade: Award,
+  payment: Wallet,
+  scholarship: HandCoins,
+  registration: ClipboardCheck,
+  fee: GraduationCap,
+  leave: CalendarClock,
+  exam: ClipboardList,
+  result: CheckCircle2,
+  certificate: BadgeCheck,
+  transcript: ScrollText,
+  lock: Lock,
+} as const;
 
 function initials(name: string) {
   return name
@@ -58,7 +98,7 @@ export function ActivityCard({
         ) : (
           activity.map((item, index) => {
             const color = palette[index % palette.length];
-            const Icon = item.kind === "grade" ? Award : FileText;
+            const Icon = KIND_ICONS[item.kind];
             return (
               <div key={item.id} className="flex items-start gap-3 rounded-lg p-2">
                 <div
