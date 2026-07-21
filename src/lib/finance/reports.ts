@@ -112,6 +112,66 @@ export async function getCollectionRate() {
   return collectionRateFromRows(rows);
 }
 
+export type DateRange = { from: Date; to: Date };
+
+export async function getRevenueOverTime(range: DateRange): Promise<{ date: string; amount: number }[]> {
+  const payments = await prisma.paymentRecord.findMany({
+    where: { verificationStatus: "VERIFIED", verifiedAt: { gte: range.from, lte: range.to } },
+    select: { amount: true, verifiedAt: true },
+    orderBy: { verifiedAt: "asc" },
+  });
+
+  const byDay = new Map<string, number>();
+  for (const payment of payments) {
+    if (!payment.verifiedAt) continue;
+    const key = payment.verifiedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    byDay.set(key, (byDay.get(key) ?? 0) + Number(payment.amount));
+  }
+  return Array.from(byDay.entries()).map(([date, amount]) => ({ date, amount }));
+}
+
+export type ProgramFeeStatusRow = {
+  programId: string;
+  code: string;
+  name: string;
+  durationYears: number;
+  status: "Fee configured" | "Partially configured" | "Needs fee setup";
+};
+
+/**
+ * "Fully configured" means a fee row exists for every (yearLevel, semesterNumber) combination
+ * a program's duration actually spans — same distinct-semester-numbers-with-[1,2]-fallback
+ * convention as the program detail page (src/app/finance/programs/[programId]/page.tsx), so the
+ * two stay in agreement about what "complete" means.
+ */
+export async function getProgramFeeStatus(): Promise<ProgramFeeStatusRow[]> {
+  const [programs, distinctSemesterNumbers, fees] = await Promise.all([
+    prisma.program.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.semester.findMany({ select: { semesterNumber: true }, distinct: ["semesterNumber"] }),
+    prisma.programCurriculumFee.findMany({ select: { programId: true } }),
+  ]);
+  const semesterCount = distinctSemesterNumbers.length > 0 ? distinctSemesterNumbers.length : 2;
+
+  const feeCountByProgram = new Map<string, number>();
+  for (const fee of fees) {
+    feeCountByProgram.set(fee.programId, (feeCountByProgram.get(fee.programId) ?? 0) + 1);
+  }
+
+  return programs.map((program) => {
+    const configuredCount = feeCountByProgram.get(program.id) ?? 0;
+    const expectedCount = program.durationYears * semesterCount;
+    const status: ProgramFeeStatusRow["status"] =
+      configuredCount === 0 ? "Needs fee setup" : configuredCount < expectedCount ? "Partially configured" : "Fee configured";
+    return {
+      programId: program.id,
+      code: program.code,
+      name: program.name,
+      durationYears: program.durationYears,
+      status,
+    };
+  });
+}
+
 export async function getRevenueByProgram(): Promise<{ name: string; amount: number }[]> {
   const payments = await prisma.paymentRecord.findMany({
     where: { verificationStatus: "VERIFIED" },
