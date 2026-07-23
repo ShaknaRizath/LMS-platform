@@ -87,7 +87,7 @@ export function ContentItemView({
   const Icon = TYPE_ICONS[item.type];
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-4">
+    <div id={`content-${item.id}`} className="flex flex-col gap-2 rounded-lg border border-border bg-background p-4">
       <div className="flex items-center gap-2">
         <Icon className="size-4" style={{ color: TYPE_ICON_COLORS[item.type] }} />
         <p className="text-sm font-medium">{item.title}</p>

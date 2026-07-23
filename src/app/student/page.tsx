@@ -123,6 +123,7 @@ export default async function StudentDashboardPage() {
       title: item.title,
       subtitle: `${item.week.module.code} · Due ${item.dueDate!.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
       moduleId: item.week.moduleId,
+      targetId: item.id,
     })),
     ...upcomingQuizzes.map((quiz) => ({
       id: `quiz-${quiz.id}`,
@@ -130,6 +131,7 @@ export default async function StudentDashboardPage() {
       title: quiz.title,
       subtitle: `${quiz.module.code} · ${quiz.kind === "EXAM" ? "Exam" : "Quiz"}`,
       moduleId: quiz.moduleId,
+      targetId: quiz.id,
     })),
   ].slice(0, 5);
 

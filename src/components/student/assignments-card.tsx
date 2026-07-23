@@ -9,6 +9,7 @@ export type TodoItem = {
   title: string;
   subtitle: string;
   moduleId: string;
+  targetId: string;
 };
 
 export function AssignmentsCard({ items }: { items: TodoItem[] }) {
@@ -26,8 +27,8 @@ export function AssignmentsCard({ items }: { items: TodoItem[] }) {
             const Icon = item.kind === "QUIZ" ? ListChecks : FileText;
             const href =
               item.kind === "QUIZ"
-                ? `/student/modules/${item.moduleId}/quizzes`
-                : `/student/modules/${item.moduleId}`;
+                ? `/student/modules/${item.moduleId}/quizzes/${item.targetId}`
+                : `/student/modules/${item.moduleId}#content-${item.targetId}`;
             return (
               <Link
                 key={item.id}
