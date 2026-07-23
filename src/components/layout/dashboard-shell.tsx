@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck, CalendarClock } from "lucide-react";
@@ -128,30 +129,40 @@ export function DashboardShell({
             collapsed ? "w-16 items-center px-2" : "w-64 px-4"
           )}
         >
-          <div className={cn("mb-6 flex items-center", collapsed ? "flex-col gap-3" : "justify-between px-2")}>
+          <div className={cn("mb-6 flex flex-col gap-3", !collapsed && "px-2")}>
+            <div className={cn("flex items-center", collapsed ? "flex-col gap-3" : "justify-between")}>
+              <Image
+                src="/cims-logo.png"
+                alt="CIMS Campus"
+                width={40}
+                height={40}
+                className="rounded-full"
+                priority
+              />
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setCollapsed((prev) => !prev)}
+                    >
+                      <PanelLeft className="size-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent side={collapsed ? "right" : "bottom"}>
+                  {collapsed ? "Open sidebar" : "Close sidebar"}
+                </TooltipContent>
+              </Tooltip>
+            </div>
             {!collapsed && (
               <div>
                 <p className="text-lg font-semibold text-sidebar-foreground">CIMS Campus</p>
                 <p className="text-xs text-muted-foreground">{roleLabel}</p>
               </div>
             )}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setCollapsed((prev) => !prev)}
-                  >
-                    <PanelLeft className="size-4" />
-                  </Button>
-                }
-              />
-              <TooltipContent side={collapsed ? "right" : "bottom"}>
-                {collapsed ? "Open sidebar" : "Close sidebar"}
-              </TooltipContent>
-            </Tooltip>
           </div>
           <nav className={cn("flex flex-1 flex-col gap-1", collapsed && "items-center")}>
             {navItems.map((item) =>
@@ -181,9 +192,12 @@ export function DashboardShell({
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-center justify-between border-b border-border bg-background px-6 py-3">
-            <div className="sm:hidden">
-              <p className="text-sm font-semibold">CIMS Campus</p>
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            <div className="flex items-center gap-2 sm:hidden">
+              <Image src="/cims-logo.png" alt="CIMS Campus" width={28} height={28} className="rounded-full" />
+              <div>
+                <p className="text-sm font-semibold">CIMS Campus</p>
+                <p className="text-xs text-muted-foreground">{roleLabel}</p>
+              </div>
             </div>
             <div className="ml-auto flex items-center gap-3">
               {leaveHref && (
