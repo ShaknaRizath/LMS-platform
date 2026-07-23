@@ -21,7 +21,7 @@ export default async function HrOfficerLayout({
   const user = await requireRole(["HR_OFFICER"]);
 
   const [notificationItems, readRows] = await Promise.all([
-    getHrNotifications(),
+    getHrNotifications(user.id),
     prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
   ]);
   const readKeys = new Set(readRows.map((row) => row.key));

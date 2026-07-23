@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  BookMarked,
   BookOpen,
   ClipboardList,
   FileCheck2,
@@ -20,6 +21,7 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 
 const navItems: NavItem[] = [
   { href: "/student", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#5EC3E0]" /> },
+  { href: "/student/courses", label: "My Courses", icon: <BookMarked className="size-4 text-[#4E76AA]" /> },
   { href: "/student/catalog", label: "Catalog", icon: <BookOpen className="size-4 text-[#4FB8B0]" /> },
   { href: "/student/register", label: "Register", icon: <ClipboardList className="size-4 text-[#6FCB8F]" /> },
   { href: "/student/payments", label: "Payment", icon: <Wallet className="size-4 text-[#F2B84B]" /> },
