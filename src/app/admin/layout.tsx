@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
-import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
+import { getAdminNotifications } from "@/lib/notifications/admin-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 const navItems: NavItem[] = [
@@ -40,7 +40,7 @@ export default async function AdminLayout({
   const user = await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const [notificationItems, readRows] = await Promise.all([
-    getStaffLeaveNotifications(user.id),
+    getAdminNotifications(user.id),
     prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
   ]);
   const readKeys = new Set(readRows.map((row) => row.key));

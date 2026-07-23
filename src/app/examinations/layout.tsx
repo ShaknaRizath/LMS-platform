@@ -1,7 +1,7 @@
 import { LayoutDashboard, ClipboardList, Award, Lock, ScrollText } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
-import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
+import { getExaminationNotifications } from "@/lib/notifications/examination-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 // Reuses the exact Cosmic Blues / Soft Whisper palette from the Finance and Program Coordinator
@@ -24,7 +24,7 @@ export default async function ExaminationUnitLayout({
   const user = await requireRole(["EXAMINATION_UNIT"]);
 
   const [notificationItems, readRows] = await Promise.all([
-    getStaffLeaveNotifications(user.id),
+    getExaminationNotifications(user.id),
     prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
   ]);
   const readKeys = new Set(readRows.map((row) => row.key));

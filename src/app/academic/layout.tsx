@@ -1,7 +1,7 @@
 import { LayoutDashboard, BarChart3, ShieldAlert, GraduationCap, CalendarDays } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
-import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
+import { getAcademicDirectorNotifications } from "@/lib/notifications/academic-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 // 5 nav icons, each a distinct color — blends the vivid pink/magenta/coral/orange palette
@@ -23,7 +23,7 @@ export default async function AcademicDirectorLayout({
   const user = await requireRole(["ACADEMIC_DIRECTOR"]);
 
   const [notificationItems, readRows] = await Promise.all([
-    getStaffLeaveNotifications(user.id),
+    getAcademicDirectorNotifications(user.id),
     prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
   ]);
   const readKeys = new Set(readRows.map((row) => row.key));

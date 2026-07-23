@@ -1,7 +1,7 @@
 import { LayoutDashboard, Inbox } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
-import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
+import { getMarketingNotifications } from "@/lib/notifications/marketing-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
 // Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator and
@@ -20,7 +20,7 @@ export default async function MarketingOfficerLayout({
   const user = await requireRole(["MARKETING_OFFICER"]);
 
   const [notificationItems, readRows] = await Promise.all([
-    getStaffLeaveNotifications(user.id),
+    getMarketingNotifications(user.id),
     prisma.notificationRead.findMany({ where: { userId: user.id }, select: { key: true } }),
   ]);
   const readKeys = new Set(readRows.map((row) => row.key));
