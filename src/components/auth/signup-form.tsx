@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signup } from "@/lib/actions/auth/signup.action";
-import type { ActionState } from "@/lib/actions/action-state";
+import { signup, type SignupState } from "@/lib/actions/auth/signup.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,10 +24,18 @@ import {
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
 export function SignupForm({ programs }: { programs: { id: string; name: string }[] }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState<SignupState, FormData>(
     signup,
     undefined
   );
+
+  useEffect(() => {
+    if (state?.redirectTo) {
+      router.push(state.redirectTo);
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction}>

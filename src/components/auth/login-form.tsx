@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login, type LoginState } from "@/lib/actions/auth/login.action";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,18 @@ import {
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     login,
     undefined
   );
+
+  useEffect(() => {
+    if (state?.redirectTo) {
+      router.push(state.redirectTo);
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction}>

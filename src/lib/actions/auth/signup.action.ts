@@ -8,9 +8,12 @@ import { hashPassword } from "@/lib/auth/password";
 import { signupSchema } from "@/lib/validation/signup.schema";
 import { sendNotificationEmail } from "@/lib/notifications";
 import { signupWelcomeTemplate } from "@/lib/notifications/templates/account";
-import type { ActionState } from "@/lib/actions/action-state";
 
-export async function signup(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export type SignupState =
+  | { error?: string; fieldErrors?: Record<string, string[] | undefined>; redirectTo?: string }
+  | undefined;
+
+export async function signup(_prev: SignupState, formData: FormData): Promise<SignupState> {
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
@@ -48,11 +51,16 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   await sendNotificationEmail("SIGNUP_WELCOME", { to: user.email, ...template }, user.id);
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/student" });
+    // redirect: false so the client can navigate itself — see the comment in login.action.ts
+    // for why letting signIn() redirect server-side leaves the dashboard shell's
+    // usePathname-based footer stuck reading a stale route until a manual refresh.
+    await signIn("credentials", { email, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: "Account created — please sign in." };
     }
     throw error;
   }
+
+  return { redirectTo: "/student" };
 }
