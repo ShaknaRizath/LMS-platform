@@ -66,7 +66,7 @@ export default async function LecturerModuleDetailPage({
             render={<Link href={`/lecturer/modules/${module_.id}/quizzes`} />}
           >
             <ListChecks />
-            Quizzes
+            Exams
           </Button>
           <Button
             variant="outline"

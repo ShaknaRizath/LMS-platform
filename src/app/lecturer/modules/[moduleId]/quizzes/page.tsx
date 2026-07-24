@@ -54,7 +54,7 @@ export default async function LecturerQuizzesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold text-foreground">Quizzes &amp; Exams</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Exams</h1>
 
       {quizzes.length === 0 ? (
         <Empty>
@@ -62,7 +62,7 @@ export default async function LecturerQuizzesPage({
             <EmptyMedia variant="icon">
               <ListChecks />
             </EmptyMedia>
-            <EmptyTitle>No quizzes or exams yet</EmptyTitle>
+            <EmptyTitle>No exams or quizzes yet</EmptyTitle>
             <EmptyDescription>Create one below to get started.</EmptyDescription>
           </EmptyHeader>
         </Empty>
