@@ -20,12 +20,6 @@ const KIND_OPTIONS = [
   { value: "PRACTICAL", label: "Practical assessment (rubric-graded)" },
 ];
 
-const SUBMIT_LABELS: Record<string, string> = {
-  QUIZ: "Create quiz",
-  EXAM: "Create exam",
-  PRACTICAL: "Create practical assessment",
-};
-
 export function CreateQuizForm({
   action,
   categories = [],
@@ -104,7 +98,7 @@ export function CreateQuizForm({
 
         {state?.error && <FieldError>{state.error}</FieldError>}
         <Button type="submit" disabled={pending} className="self-start">
-          {pending ? "Creating..." : SUBMIT_LABELS[kind]}
+          {pending ? "Creating..." : "Create"}
         </Button>
       </FieldGroup>
     </form>

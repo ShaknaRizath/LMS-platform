@@ -27,7 +27,7 @@ export function QuizOutcomesForm({
   if (outcomes.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No learning outcomes defined for this module yet — add some from the Quizzes list page.
+        No learning outcomes defined for this module yet — add some from the Exams list page.
       </p>
     );
   }
