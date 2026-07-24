@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 
 // While browsing inside a specific module, surface that module's Assignments/
-// Quizzes/Discussions/Announcements as extra sidebar links — otherwise they're
+// Exams/Discussions/Announcements as extra sidebar links — otherwise they're
 // only reachable via header buttons on the module's own page.
 function useLecturerModuleNavItems(pathname: string): NavItem[] {
   const match = pathname.match(/^\/lecturer\/modules\/([^/]+)/);
@@ -32,7 +32,7 @@ function useLecturerModuleNavItems(pathname: string): NavItem[] {
     },
     {
       href: `/lecturer/modules/${moduleId}/quizzes`,
-      label: "Quizzes",
+      label: "Exams",
       icon: <ListChecks className="size-4" style={{ color: LECTURER_PALETTE[1].accent }} />,
     },
     {

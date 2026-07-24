@@ -18,8 +18,40 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty";
-import { PenLine } from "lucide-react";
+import { PenLine, Download } from "lucide-react";
 import { isModuleGradesLocked, MODULE_GRADES_LOCKED_MESSAGE } from "@/lib/grades/lock";
+
+function EssayAnswerBody({
+  answer,
+  muted,
+}: {
+  answer: { textResponse: string | null; fileUrl: string | null; fileName: string | null; question: { answerFormat: "TEXT" | "FILE" } };
+  muted: boolean;
+}) {
+  if (answer.question.answerFormat === "FILE") {
+    if (!answer.fileUrl) {
+      return <p className="mt-1 rounded-md bg-muted/50 p-2 text-sm text-muted-foreground">No file submitted.</p>;
+    }
+    return (
+      <a
+        href={answer.fileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-1 flex w-fit items-center gap-1.5 rounded-md p-2 text-sm text-primary hover:underline ${muted ? "" : "bg-muted/50"}`}
+      >
+        <Download className="size-3.5" />
+        {answer.fileName ?? "Uploaded file"}
+      </a>
+    );
+  }
+  return (
+    <p
+      className={`mt-1 whitespace-pre-wrap rounded-md p-2 text-sm ${muted ? "text-muted-foreground" : "bg-muted/50"}`}
+    >
+      {answer.textResponse || "No answer submitted."}
+    </p>
+  );
+}
 
 export default async function LecturerQuizResultsPage({
   params,
@@ -188,9 +220,7 @@ export default async function LecturerQuizResultsPage({
                   <p className="text-sm font-medium">
                     {answer.attempt.student.firstName} {answer.attempt.student.lastName} — {answer.question.prompt}
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm">
-                    {answer.textResponse || "No answer submitted."}
-                  </p>
+                  <EssayAnswerBody answer={answer} muted={false} />
                   <div className="mt-2">
                     <EssayGradeForm
                       answerId={answer.id}
@@ -213,7 +243,7 @@ export default async function LecturerQuizResultsPage({
                   <p className="text-sm font-medium">
                     {answer.attempt.student.firstName} {answer.attempt.student.lastName} — {answer.question.prompt}
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{answer.textResponse}</p>
+                  <EssayAnswerBody answer={answer} muted />
                   <div className="mt-2">
                     <EssayGradeForm
                       answerId={answer.id}

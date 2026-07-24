@@ -177,6 +177,13 @@ enum QuestionType {
   ESSAY
 }
 
+// Only meaningful for QuestionType.ESSAY — whether the student types a response in a text
+// box or uploads a file (e.g. the lecturer wants a worked solution as a scanned PDF/photo).
+enum AnswerFormat {
+  TEXT
+  FILE
+}
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -657,8 +664,14 @@ model QuizQuestion {
   quiz       Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   type       QuestionType
   prompt     String       @db.Text
+  // Optional file attached to the question itself (e.g. a PDF/Word/Excel/image the
+  // question refers to) — shown to students alongside the text prompt, any question type.
+  promptFileUrl  String?
+  promptFileName String?
   points     Int          @default(1)
   orderIndex Int
+  // Only meaningful for type ESSAY — see AnswerFormat.
+  answerFormat AnswerFormat @default(TEXT)
 
   options QuizOption[]
   answers QuizAnswer[]
@@ -716,6 +729,10 @@ model QuizAnswer {
   isCorrect        Boolean?
   // ESSAY — free-text response, manually graded by the lecturer afterwards
   textResponse     String?      @db.Text
+  // ESSAY — file response, used instead of textResponse when the question's
+  // answerFormat is FILE (e.g. the lecturer wants a worked solution as a scanned PDF).
+  fileUrl          String?
+  fileName         String?
   // Points actually awarded for this answer. Set immediately at submit time for
   // auto-graded MCQ/TRUE_FALSE; left null for ESSAY until a lecturer grades it.
   pointsAwarded    Int?

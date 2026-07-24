@@ -55,8 +55,12 @@ export default async function StudentQuizAttemptPage({
             prompt: question.prompt,
             points: question.points,
             options: question.options,
+            promptFileUrl: question.promptFileUrl,
+            promptFileName: question.promptFileName,
+            answerFormat: question.answerFormat,
           }))}
           deadline={deadline}
+          studentId={student.id}
         />
       </div>
     );
@@ -72,7 +76,7 @@ export default async function StudentQuizAttemptPage({
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-medium">Submitted — awaiting grading</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your answers have been recorded. Your lecturer is still grading this attempt's questions —
+            Your answers have been recorded. Your lecturer is still grading this attempt&apos;s questions —
             your score will appear here once they publish the results.
           </p>
         </div>
@@ -104,11 +108,36 @@ export default async function StudentQuizAttemptPage({
               <p className="text-sm font-medium">
                 {index + 1}. {question.prompt}
               </p>
+              {question.promptFileUrl && (
+                <a
+                  href={question.promptFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  {question.promptFileName ?? "Attached file"}
+                </a>
+              )}
               {question.type === "ESSAY" ? (
                 <div className="mt-2 flex flex-col gap-2">
-                  <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm">
-                    {answer?.textResponse || "No answer submitted."}
-                  </p>
+                  {question.answerFormat === "FILE" ? (
+                    answer?.fileUrl ? (
+                      <a
+                        href={answer.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-fit items-center gap-1.5 rounded-md bg-muted/50 p-2 text-sm text-primary hover:underline"
+                      >
+                        {answer.fileName ?? "Your uploaded file"}
+                      </a>
+                    ) : (
+                      <p className="rounded-md bg-muted/50 p-2 text-sm text-muted-foreground">No file submitted.</p>
+                    )
+                  ) : (
+                    <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm">
+                      {answer?.textResponse || "No answer submitted."}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {answer?.pointsAwarded != null
                       ? `${answer.pointsAwarded} / ${question.points} pt${question.points === 1 ? "" : "s"} awarded`
