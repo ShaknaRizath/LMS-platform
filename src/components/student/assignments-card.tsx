@@ -16,7 +16,7 @@ export function AssignmentsCard({ items }: { items: TodoItem[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Assignments &amp; Quizzes</CardTitle>
+        <CardTitle>Assignments &amp; Exams</CardTitle>
       </CardHeader>
       <div className="flex flex-col gap-1 px-(--card-spacing) pb-(--card-spacing)">
         {items.length === 0 ? (
