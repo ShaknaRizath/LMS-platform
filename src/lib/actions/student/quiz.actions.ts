@@ -80,6 +80,19 @@ export async function submitAttempt(
     totalPoints += question.points;
 
     if (question.type === "ESSAY") {
+      if (question.answerFormat === "FILE") {
+        const rawFileUrl = formData.get(`question_${question.id}_fileUrl`);
+        const rawFileName = formData.get(`question_${question.id}_fileName`);
+        return {
+          questionId: question.id,
+          selectedOptionId: null,
+          isCorrect: null,
+          textResponse: null,
+          fileUrl: typeof rawFileUrl === "string" && rawFileUrl ? rawFileUrl : null,
+          fileName: typeof rawFileName === "string" && rawFileName ? rawFileName : null,
+          pointsAwarded: null,
+        };
+      }
       const rawTextResponse = formData.get(`question_${question.id}`);
       return {
         questionId: question.id,

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { ActionState } from "@/lib/actions/action-state";
+import { useFileUpload } from "@/lib/storage/use-file-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,12 +14,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 
 const TYPE_OPTIONS = [
   { value: "MCQ", label: "Multiple choice" },
   { value: "TRUE_FALSE", label: "True / False" },
-  { value: "ESSAY", label: "Essay (free text, graded manually)" },
+  { value: "ESSAY", label: "Essay/ upload file (free text, graded manually)" },
+];
+
+const ANSWER_FORMAT_OPTIONS = [
+  { value: "TEXT", label: "Student types a written response" },
+  { value: "FILE", label: "Student uploads a file (PDF, Word, Excel, image)" },
 ];
 
 const MAX_OPTIONS = 6;
@@ -30,6 +36,9 @@ export type QuizQuestionFormDefaultValues = {
   options: string[];
   correctIndex: number | null;
   correctAnswer: "true" | "false" | null;
+  promptFileUrl?: string | null;
+  promptFileName?: string | null;
+  answerFormat?: "TEXT" | "FILE";
 };
 
 export function QuizQuestionForm({
@@ -50,6 +59,13 @@ export function QuizQuestionForm({
     defaultValues && defaultValues.options.length >= 2 ? defaultValues.options : ["", ""]
   );
   const [correctSlot, setCorrectSlot] = useState<number | null>(defaultValues?.correctIndex ?? null);
+  const [answerFormat, setAnswerFormat] = useState<string>(defaultValues?.answerFormat ?? "TEXT");
+  const [promptFile, setPromptFile] = useState<{ url: string; name: string } | null>(
+    defaultValues?.promptFileUrl
+      ? { url: defaultValues.promptFileUrl, name: defaultValues.promptFileName ?? "file" }
+      : null
+  );
+  const { upload, uploading, error: uploadError } = useFileUpload();
 
   async function wrappedAction(prevState: ActionState, formData: FormData) {
     const result = await action(prevState, formData);
@@ -57,6 +73,7 @@ export function QuizQuestionForm({
       if (!defaultValues) {
         setOptions(["", ""]);
         setCorrectSlot(null);
+        setPromptFile(null);
       }
       onSuccess?.();
     }
@@ -75,7 +92,7 @@ export function QuizQuestionForm({
               <SelectTrigger id="type" className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-max min-w-(--anchor-width) overflow-x-visible">
                 {TYPE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -95,6 +112,31 @@ export function QuizQuestionForm({
           <FieldLabel htmlFor="prompt">Question</FieldLabel>
           <Textarea id="prompt" name="prompt" rows={2} defaultValue={defaultValues?.prompt} required />
           <FieldError errors={state?.fieldErrors?.prompt?.map((message) => ({ message }))} />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="promptFile">Attach a file to the question (optional)</FieldLabel>
+          <input type="hidden" name="promptFileUrl" value={promptFile?.url ?? ""} />
+          <input type="hidden" name="promptFileName" value={promptFile?.name ?? ""} />
+          <Input
+            id="promptFile"
+            type="file"
+            disabled={uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const result = await upload(file, "content-files");
+              if (result) setPromptFile({ url: result.url, name: result.fileName });
+            }}
+          />
+          <FieldDescription>
+            PDF, Word, Excel, or an image — shown to students alongside the question text.
+          </FieldDescription>
+          {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+          {promptFile && !uploading && (
+            <p className="text-sm text-muted-foreground">Uploaded: {promptFile.name}</p>
+          )}
+          {uploadError && <FieldError>{uploadError}</FieldError>}
         </Field>
 
         {type === "MCQ" && (
@@ -187,13 +229,31 @@ export function QuizQuestionForm({
         )}
 
         {type === "ESSAY" && (
-          <p className="text-sm text-muted-foreground">
-            Students will type a free-text answer. You&apos;ll award points manually after they submit.
-          </p>
+          <Field>
+            <FieldLabel htmlFor="answerFormat">How should students answer?</FieldLabel>
+            <Select
+              name="answerFormat"
+              value={answerFormat}
+              onValueChange={(value) => setAnswerFormat(value ?? "TEXT")}
+              items={ANSWER_FORMAT_OPTIONS}
+            >
+              <SelectTrigger id="answerFormat" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ANSWER_FORMAT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>You&apos;ll award points manually after they submit either way.</FieldDescription>
+          </Field>
         )}
 
         {state?.error && <FieldError>{state.error}</FieldError>}
-        <Button type="submit" disabled={pending} className="self-start">
+        <Button type="submit" disabled={pending || uploading} className="self-start">
           {pending ? pendingLabel : submitLabel}
         </Button>
       </FieldGroup>
