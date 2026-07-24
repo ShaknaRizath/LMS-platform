@@ -80,6 +80,23 @@ export async function updateUser(
 
   await prisma.user.update({ where: { id: userId }, data: parsed.data });
 
+  // Changing a student's home program doesn't rewrite their academic history (past grades/
+  // attendance stay real), but any still-ACTIVE enrollment in a module that belongs to a
+  // *different* program than their current one is no longer relevant going forward — withdraw
+  // those, not delete. Runs on every save (not just when programId visibly changes in this
+  // request) so it also self-heals a student who was already left mismatched by an earlier
+  // save made before this reconciliation existed.
+  if (parsed.data.role === "STUDENT" && parsed.data.programId) {
+    await prisma.enrollment.updateMany({
+      where: {
+        studentId: userId,
+        status: "ACTIVE",
+        module: { programId: { not: parsed.data.programId } },
+      },
+      data: { status: "WITHDRAWN" },
+    });
+  }
+
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
   redirect(`/admin/users/${userId}`);

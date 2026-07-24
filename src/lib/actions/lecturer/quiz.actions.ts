@@ -105,8 +105,11 @@ export async function addQuestion(
       quizId,
       type: data.type,
       prompt: data.prompt,
+      promptFileUrl: data.promptFileUrl,
+      promptFileName: data.promptFileName,
       points: data.points,
       orderIndex,
+      answerFormat: data.type === "ESSAY" ? data.answerFormat : undefined,
       options: optionsData.length > 0 ? { create: optionsData } : undefined,
     },
   });
@@ -142,7 +145,10 @@ export async function updateQuestion(
       data: {
         type: data.type,
         prompt: data.prompt,
+        promptFileUrl: data.promptFileUrl ?? null,
+        promptFileName: data.promptFileName ?? null,
         points: data.points,
+        answerFormat: data.type === "ESSAY" ? data.answerFormat : "TEXT",
         options: optionsData.length > 0 ? { create: optionsData } : undefined,
       },
     }),

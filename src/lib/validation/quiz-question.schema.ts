@@ -5,6 +5,9 @@ const MAX_OPTIONS = 6;
 const baseQuestionFields = {
   prompt: z.string().min(1, { error: "Enter a question prompt." }),
   points: z.coerce.number({ error: "Enter points." }).int().min(1, { error: "Points must be at least 1." }),
+  // Optional file attached to the question itself — any question type.
+  promptFileUrl: z.string().optional().transform((value) => value || undefined),
+  promptFileName: z.string().optional().transform((value) => value || undefined),
 };
 
 export const questionSchema = z
@@ -23,6 +26,7 @@ export const questionSchema = z
     z.object({
       type: z.literal("ESSAY"),
       ...baseQuestionFields,
+      answerFormat: z.enum(["TEXT", "FILE"]).default("TEXT"),
     }),
   ])
   .refine((data) => data.type !== "MCQ" || data.correctIndex < data.options.length, {
@@ -44,6 +48,8 @@ export function buildQuestionInput(formData: FormData): Record<string, unknown> 
     type,
     prompt: formData.get("prompt"),
     points: formData.get("points"),
+    promptFileUrl: formData.get("promptFileUrl"),
+    promptFileName: formData.get("promptFileName"),
   };
 
   if (type === "TRUE_FALSE") {
@@ -51,7 +57,7 @@ export function buildQuestionInput(formData: FormData): Record<string, unknown> 
   }
 
   if (type === "ESSAY") {
-    return base;
+    return { ...base, answerFormat: formData.get("answerFormat") || "TEXT" };
   }
 
   const rawCorrectSlot = formData.get("correctIndex");
