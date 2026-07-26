@@ -37,6 +37,27 @@ export async function getOwnedQuiz(quizId: string, lecturerId: string) {
   return quiz;
 }
 
+export async function deleteQuiz(
+  quizId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  const lecturer = await requireRole(["LECTURER"]);
+  const quiz = await getOwnedQuiz(quizId, lecturer.id);
+  // Gated on attempts, not status — a DRAFT is always safe, but so is a PUBLISHED/CLOSED
+  // quiz nobody ever attempted (e.g. closed right after publishing by mistake). What must
+  // never happen is deleting real recorded student work.
+  const attemptCount = await prisma.quizAttempt.count({ where: { quizId } });
+  if (attemptCount > 0) {
+    return { error: "This can't be deleted — students have already attempted it. Close it instead." };
+  }
+
+  await prisma.quiz.delete({ where: { id: quizId } });
+
+  revalidatePath(`/lecturer/modules/${quiz.moduleId}/quizzes`);
+  redirect(`/lecturer/modules/${quiz.moduleId}/quizzes`);
+}
+
 export async function createQuiz(
   moduleId: string,
   _prev: ActionState,

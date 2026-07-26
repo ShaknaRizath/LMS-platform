@@ -12,7 +12,8 @@ import { QuizQuestionForm } from "@/components/lecturer/quiz-question-form";
 import { RubricCriteriaManager } from "@/components/lecturer/rubric-criteria-manager";
 import { QuizOutcomesForm } from "@/components/lecturer/quiz-outcomes-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addQuestion } from "@/lib/actions/lecturer/quiz.actions";
+import { DeleteConfirmButton } from "@/components/admin/delete-confirm-button";
+import { addQuestion, deleteQuiz } from "@/lib/actions/lecturer/quiz.actions";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -132,6 +133,13 @@ export default async function LecturerQuizDetailPage({
             status={quiz.status}
             canPublish={canPublish}
           />
+          {quiz._count.attempts === 0 && (
+            <DeleteConfirmButton
+              action={deleteQuiz.bind(null, quiz.id)}
+              title={`Delete this ${KIND_LABELS[quiz.kind].toLowerCase()}?`}
+              description="This permanently deletes it along with all of its questions/criteria. This cannot be undone."
+            />
+          )}
         </div>
       </div>
 
