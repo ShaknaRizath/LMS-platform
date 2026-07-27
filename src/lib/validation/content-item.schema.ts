@@ -59,6 +59,15 @@ export const contentItemSchema = z.discriminatedUnion("type", [
       .transform((value) => new Date(value)),
   }),
   z.object({
+    type: z.literal("TEAMS"),
+    ...baseFields,
+    teamsJoinUrl: z.url({ error: "Enter a valid Microsoft Teams join URL, starting with https://" }),
+    scheduledAt: z
+      .string()
+      .min(1, { error: "Enter when this session starts." })
+      .transform((value) => new Date(value)),
+  }),
+  z.object({
     type: z.literal("RICH_TEXT"),
     ...baseFields,
     richTextHtml: z.string().min(1, { error: "Enter some content." }),
