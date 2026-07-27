@@ -5,6 +5,7 @@ import {
   Video,
   Presentation,
   MonitorPlay,
+  Users,
   File as FileIcon,
   Download,
   ExternalLink,
@@ -45,6 +46,7 @@ const TYPE_ICONS: Record<ContentType, typeof FileText> = {
   VIDEO: Video,
   ZOOM: Presentation,
   GOOGLE_MEET: MonitorPlay,
+  TEAMS: Users,
 };
 
 const TYPE_ICON_COLORS: Record<ContentType, string> = {
@@ -54,6 +56,7 @@ const TYPE_ICON_COLORS: Record<ContentType, string> = {
   VIDEO: "#8B7FE0",
   ZOOM: "#4FB8B0",
   GOOGLE_MEET: "#E0A83B",
+  TEAMS: "#5B5FC7",
 };
 
 export function ContentItemView({
@@ -75,6 +78,7 @@ export function ContentItemView({
     zoomMeetingId: string | null;
     zoomPasscode: string | null;
     meetJoinUrl: string | null;
+    teamsJoinUrl: string | null;
     scheduledAt: Date | null;
     richTextHtml: string | null;
     fileUrl: string | null;
@@ -195,6 +199,32 @@ export function ContentItemView({
                 <span className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
                   <ExternalLink className="size-3.5" />
                   Join Google Meet
+                </span>
+              )}
+              {joinState.label && <p className="text-xs text-muted-foreground">{joinState.label}</p>}
+            </div>
+          );
+        })()}
+      {item.type === "TEAMS" &&
+        item.teamsJoinUrl &&
+        (() => {
+          const joinState = getSessionJoinState(item.scheduledAt);
+          return (
+            <div className="flex flex-col gap-1">
+              {joinState.canJoin ? (
+                <a
+                  href={item.teamsJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="size-3.5" />
+                  Join Teams meeting
+                </a>
+              ) : (
+                <span className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
+                  <ExternalLink className="size-3.5" />
+                  Join Teams meeting
                 </span>
               )}
               {joinState.label && <p className="text-xs text-muted-foreground">{joinState.label}</p>}

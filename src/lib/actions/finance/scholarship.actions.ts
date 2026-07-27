@@ -46,6 +46,8 @@ export async function decideScholarship(scholarshipId: string, decision: "APPROV
 
   revalidatePath("/finance/scholarships");
   revalidatePath("/finance");
+  revalidatePath("/admin/scholarships");
+  revalidatePath("/admin");
   revalidatePath("/student/scholarships");
   revalidatePath("/student/payments");
 }
