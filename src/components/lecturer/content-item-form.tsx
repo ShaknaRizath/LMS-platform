@@ -30,6 +30,7 @@ const TYPE_LABELS: Record<ContentType, string> = {
   VIDEO: "Video link",
   ZOOM: "Zoom meeting",
   GOOGLE_MEET: "Google Meet",
+  TEAMS: "Microsoft Teams meeting",
 };
 
 export function ContentItemForm({
@@ -50,6 +51,7 @@ export function ContentItemForm({
     zoomMeetingId?: string | null;
     zoomPasscode?: string | null;
     meetJoinUrl?: string | null;
+    teamsJoinUrl?: string | null;
     scheduledAt?: Date | null;
     richTextHtml?: string | null;
     fileUrl?: string | null;
@@ -210,6 +212,36 @@ export function ContentItemForm({
                 defaultValue={defaultValues?.meetJoinUrl ?? ""}
               />
               <FieldError errors={state?.fieldErrors?.meetJoinUrl?.map((message) => ({ message }))} />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="scheduledAt">Session starts</FieldLabel>
+              <Input
+                id="scheduledAt"
+                name="scheduledAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocalValue(defaultValues?.scheduledAt)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Students can join from 15 minutes before this time.
+              </p>
+              <FieldError errors={state?.fieldErrors?.scheduledAt?.map((message) => ({ message }))} />
+            </Field>
+          </>
+        )}
+
+        {type === "TEAMS" && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="teamsJoinUrl">Microsoft Teams join URL</FieldLabel>
+              <Input
+                id="teamsJoinUrl"
+                name="teamsJoinUrl"
+                type="url"
+                placeholder="https://teams.microsoft.com/l/meetup-join/..."
+                defaultValue={defaultValues?.teamsJoinUrl ?? ""}
+              />
+              <FieldError errors={state?.fieldErrors?.teamsJoinUrl?.map((message) => ({ message }))} />
             </Field>
             <Field>
               <FieldLabel htmlFor="scheduledAt">Session starts</FieldLabel>

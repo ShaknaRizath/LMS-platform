@@ -2,8 +2,8 @@ import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { PendingScholarshipsList } from "@/components/shared/pending-scholarships-list";
 
-export default async function FinanceScholarshipsPage() {
-  await requireRole(["FINANCE"]);
+export default async function AdminScholarshipsPage() {
+  await requireRole(["SUPER_ADMIN", "CAMPUS_ADMIN"]);
 
   const pending = await prisma.scholarship.findMany({
     where: { status: "PENDING" },
