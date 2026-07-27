@@ -11,6 +11,7 @@ import {
   Bell,
   BarChart3,
   Inbox,
+  HandCoins,
 } from "lucide-react";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
   { href: "/admin/users", label: "Users", icon: <Users className="size-4 text-[#6D7DBB]" /> },
   { href: "/admin/applications", label: "Applications", icon: <Inbox className="size-4 text-[#C79966]" /> },
   { href: "/admin/registrations", label: "Registrations", icon: <ClipboardCheck className="size-4 text-[#8A6339]" /> },
+  { href: "/admin/scholarships", label: "Scholarships", icon: <HandCoins className="size-4 text-[#E0B37E]" /> },
   { href: "/admin/announcements", label: "Announcements", icon: <Megaphone className="size-4 text-[#2B3252]" /> },
   { href: "/admin/notifications", label: "Notifications", icon: <Bell className="size-4 text-[#E0B37E]" /> },
   { href: "/admin/calendar", label: "Calendar", icon: <CalendarDays className="size-4 text-[#6D7DBB]" /> },

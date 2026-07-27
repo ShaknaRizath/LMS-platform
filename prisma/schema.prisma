@@ -74,6 +74,7 @@ enum ContentType {
   VIDEO
   ZOOM
   GOOGLE_MEET
+  TEAMS
   RICH_TEXT
 }
 
@@ -559,10 +560,11 @@ model ContentItem {
   zoomMeetingId String?
   zoomPasscode  String?
   meetJoinUrl   String?
+  teamsJoinUrl  String?
   richTextHtml  String? @db.Text
 
-  // Meaningful only for type ZOOM / GOOGLE_MEET — when the live session actually starts.
-  // Required by the form for those two types, but stays nullable at the DB level so
+  // Meaningful only for type ZOOM / GOOGLE_MEET / TEAMS — when the live session actually
+  // starts. Required by the form for those types, but stays nullable at the DB level so
   // content items created before this field existed don't need a backfill.
   scheduledAt DateTime?
 
