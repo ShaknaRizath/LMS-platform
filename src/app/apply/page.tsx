@@ -2,6 +2,12 @@ import { prisma } from "@/lib/db/prisma";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { ApplicationForm } from "@/components/admissions/application-form";
 
+// Public form — its program list must reflect whatever admins have configured right now, not
+// whatever existed at the last deploy. Without this, Next.js prerenders the page once at build
+// time and serves that frozen HTML forever (confirmed live: a program added after deploy never
+// appeared until the next build).
+export const dynamic = "force-dynamic";
+
 export default async function ApplyPage() {
   const programs = await prisma.program.findMany({
     where: { isActive: true },

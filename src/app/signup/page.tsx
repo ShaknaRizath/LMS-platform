@@ -2,6 +2,9 @@ import { prisma } from "@/lib/db/prisma";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { SignupForm } from "@/components/auth/signup-form";
 
+// Same reasoning as /apply/page.tsx — must reflect live program data, not a build-time snapshot.
+export const dynamic = "force-dynamic";
+
 export default async function SignupPage() {
   const programs = await prisma.program.findMany({
     where: { isActive: true },
