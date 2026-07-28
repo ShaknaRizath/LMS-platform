@@ -2,16 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/rbac";
 import { assertLecturerOwnsModule } from "@/lib/auth/ownership";
 import { contentItemSchema } from "@/lib/validation/content-item.schema";
 import type { ActionState } from "@/lib/actions/action-state";
 
+// sanitize-html instead of isomorphic-dompurify — DOMPurify's jsdom dependency has a broken
+// CJS/ESM interop chain (html-encoding-sniffer -> @exodus/bytes) that crashes outright on
+// Vercel's Node runtime. Confirmed live: it broke createWeek in week.actions.ts, which never
+// touches DOMPurify, just because Next.js bundles every Server Action used by a page together,
+// and one poisoned top-level import took the whole bundle down. sanitize-html has no DOM
+// emulation dependency, so it doesn't have this failure mode.
 function sanitizeIfRichText<T extends { type: string; richTextHtml?: string }>(data: T): T {
   if (data.type === "RICH_TEXT" && data.richTextHtml) {
-    return { ...data, richTextHtml: DOMPurify.sanitize(data.richTextHtml) };
+    return { ...data, richTextHtml: sanitizeHtml(data.richTextHtml) };
   }
   return data;
 }
