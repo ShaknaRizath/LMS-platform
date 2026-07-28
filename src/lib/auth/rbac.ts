@@ -20,11 +20,13 @@ export async function requireRole(allowedRoles: Role[]) {
     select: { id: true, role: true, isActive: true, programId: true },
   });
 
-  // No matching user means a stale session (e.g. the account was deleted, or
-  // this JWT predates a dev database reset) — treat as unauthenticated rather
-  // than wrong-role, so the user is sent back to log in instead of a dead-end.
+  // No matching user means a stale session (e.g. the account was deleted, or this JWT
+  // predates a dev database reset). Redirecting straight to /login would loop forever —
+  // proxy.ts's optimistic JWT-only check still sees this cookie's role claim and bounces
+  // any /login visit straight back to that role's home page, which fails this same check
+  // again. Route through clear-stale-session instead, which clears the cookie first.
   if (!user) {
-    redirect("/login");
+    redirect("/api/auth/clear-stale-session");
   }
 
   if (!user.isActive || !allowedRoles.includes(user.role)) {
@@ -50,8 +52,10 @@ export async function requireUser() {
     select: { id: true, role: true, isActive: true, programId: true },
   });
 
+  // See the matching comment in requireRole above — clears the stale cookie instead of
+  // redirecting straight to /login, to avoid the proxy.ts login-bounce loop.
   if (!user) {
-    redirect("/login");
+    redirect("/api/auth/clear-stale-session");
   }
 
   if (!user.isActive) {

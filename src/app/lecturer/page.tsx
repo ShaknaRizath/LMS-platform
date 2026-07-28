@@ -34,21 +34,13 @@ export default async function LecturerDashboardPage() {
 
   const now = new Date();
 
-  const [
-    assignments,
-    activeEnrollments,
-    classSessions,
-    ungradedSubmissions,
-    announcements,
-    recentPublishedContent,
-    recentlyGraded,
-    calendarEvents,
-    profile,
-  ] = await Promise.all([
-    prisma.lecturerModuleAssignment.findMany({
-      where: { lecturerId: lecturer.id },
-      include: { module: { include: { weeks: { include: { _count: { select: { contentItems: true } } } } } } },
-    }),
+  // Four light queries batch safely, but the other five each carry a 2-3-level-deep nested
+  // include (module -> weeks -> _count, or contentItem -> week -> module); combined into one
+  // 9-entry Promise.all this reproducibly exhausted the connection pool — confirmed live via a
+  // standalone script. Same bug class as the Academic Director dashboard fix — see
+  // cims_campus_requirements_audit_2026_07 memory. Running the heavy ones sequentially keeps
+  // peak concurrency low without losing correctness.
+  const [activeEnrollments, classSessions, calendarEvents, profile] = await Promise.all([
     prisma.enrollment.findMany({
       where: { status: "ACTIVE", module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } },
       select: { moduleId: true },
@@ -58,38 +50,43 @@ export default async function LecturerDashboardPage() {
       include: { module: true },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     }),
-    prisma.submission.findMany({
-      where: {
-        gradedAt: null,
-        contentItem: { isAssignment: true, week: { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } } },
-      },
-      include: { contentItem: { include: { week: { include: { module: true } } } }, student: true },
-      orderBy: { submittedAt: "asc" },
-      take: 5,
-    }),
-    prisma.announcement.findMany({
-      where: {
-        OR: [{ scope: "INSTITUTION" }, { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } }],
-      },
-      include: { module: true },
-      orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
-      take: 4,
-    }),
-    prisma.contentItem.findMany({
-      where: { status: "PUBLISHED", week: { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } } },
-      include: { week: { include: { module: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 4,
-    }),
-    prisma.submission.findMany({
-      where: { gradedById: lecturer.id, gradedAt: { not: null } },
-      include: { contentItem: { include: { week: { include: { module: true } } } } },
-      orderBy: { gradedAt: "desc" },
-      take: 4,
-    }),
     prisma.calendarEvent.findMany({ orderBy: { startDate: "asc" } }),
     prisma.user.findUnique({ where: { id: lecturer.id }, select: { avatarUrl: true } }),
   ]);
+
+  const assignments = await prisma.lecturerModuleAssignment.findMany({
+    where: { lecturerId: lecturer.id },
+    include: { module: { include: { weeks: { include: { _count: { select: { contentItems: true } } } } } } },
+  });
+  const ungradedSubmissions = await prisma.submission.findMany({
+    where: {
+      gradedAt: null,
+      contentItem: { isAssignment: true, week: { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } } },
+    },
+    include: { contentItem: { include: { week: { include: { module: true } } } }, student: true },
+    orderBy: { submittedAt: "asc" },
+    take: 5,
+  });
+  const announcements = await prisma.announcement.findMany({
+    where: {
+      OR: [{ scope: "INSTITUTION" }, { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } }],
+    },
+    include: { module: true },
+    orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
+    take: 4,
+  });
+  const recentPublishedContent = await prisma.contentItem.findMany({
+    where: { status: "PUBLISHED", week: { module: { lecturerAssignments: { some: { lecturerId: lecturer.id } } } } },
+    include: { week: { include: { module: true } } },
+    orderBy: { publishedAt: "desc" },
+    take: 4,
+  });
+  const recentlyGraded = await prisma.submission.findMany({
+    where: { gradedById: lecturer.id, gradedAt: { not: null } },
+    include: { contentItem: { include: { week: { include: { module: true } } } } },
+    orderBy: { gradedAt: "desc" },
+    take: 4,
+  });
 
   const moduleIds = assignments.map((assignment) => assignment.moduleId);
   const enrolledCountByModule = new Map<string, number>();
