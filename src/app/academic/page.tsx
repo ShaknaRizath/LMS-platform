@@ -15,28 +15,29 @@ import { LecturerWorkloadCard } from "@/components/academic/lecturer-workload-ca
 export default async function AcademicDirectorDashboardPage() {
   const range = resolveRange({});
 
-  const [
-    activePrograms,
-    activeModules,
-    activeLecturers,
-    modulesMissingLecturer,
-    openDisciplineCases,
-    performanceSummary,
-    gradeDistribution,
-    moduleQuality,
-    workloadRows,
-    openCases,
-    calendarEvents,
-  ] = await Promise.all([
-    prisma.program.count({ where: { isActive: true } }),
-    prisma.module.count({ where: { isActive: true } }),
-    prisma.user.count({ where: { role: "LECTURER", isActive: true } }),
-    prisma.module.count({ where: { isActive: true, lecturerAssignments: { none: {} } } }),
-    prisma.disciplineCase.count({ where: { status: "OPEN" } }),
-    getAcademicPerformanceSummary(range),
-    getGradeDistribution(range),
-    getModuleQualitySummary(),
-    getLecturerWorkloads(),
+  // Five cheap counts can safely run as one batch, but getAcademicPerformanceSummary/
+  // getGradeDistribution/getModuleQualitySummary/getLecturerWorkloads each fire their own
+  // internal Promise.all (2-3 queries apiece). Combined into a single top-level Promise.all
+  // (11 array entries fanning out to ~15 concurrent queries), this reproducibly exhausted the
+  // connection pool — confirmed live via a standalone script. Same bug class as the
+  // Finance/Grade Book/Examinations Promise.all fixes — see cims_campus_lms_finance /
+  // cims_campus_requirements_audit_2026_07 memories. Running the four heavy calls
+  // sequentially keeps peak concurrency low without losing correctness.
+  const [activePrograms, activeModules, activeLecturers, modulesMissingLecturer, openDisciplineCases] =
+    await Promise.all([
+      prisma.program.count({ where: { isActive: true } }),
+      prisma.module.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: "LECTURER", isActive: true } }),
+      prisma.module.count({ where: { isActive: true, lecturerAssignments: { none: {} } } }),
+      prisma.disciplineCase.count({ where: { status: "OPEN" } }),
+    ]);
+
+  const performanceSummary = await getAcademicPerformanceSummary(range);
+  const gradeDistribution = await getGradeDistribution(range);
+  const moduleQuality = await getModuleQualitySummary();
+  const workloadRows = await getLecturerWorkloads();
+
+  const [openCases, calendarEvents] = await Promise.all([
     prisma.disciplineCase.findMany({
       where: { status: "OPEN" },
       include: { student: true, reportedBy: true },
