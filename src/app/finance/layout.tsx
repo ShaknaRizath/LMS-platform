@@ -7,7 +7,9 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 // Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator dashboard
 // (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than a Finance-specific
 // swatch — same per-icon coloring convention as every other layout (see src/app/student/layout.tsx).
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering the Finance-styled
+// shell around the shared leave-request page.
+export const FINANCE_NAV_ITEMS: NavItem[] = [
   { href: "/finance", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
   { href: "/finance/registrations", label: "Registrations", icon: <ClipboardCheck className="size-4 text-[#4356C4]" /> },
   { href: "/finance/programs", label: "Programs & Fees", icon: <GraduationCap className="size-4 text-[#8FA6E3]" /> },
@@ -39,7 +41,7 @@ export default async function FinanceLayout({
   return (
     <DashboardShell
       roleLabel="Finance Staff"
-      navItems={navItems}
+      navItems={FINANCE_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Finance"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

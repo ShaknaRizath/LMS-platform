@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck, CalendarClock } from "lucide-react";
+import { PanelLeft, ClipboardList, ListChecks, MessagesSquare, Megaphone, CalendarCheck, ClipboardCheck, CalendarClock, Home } from "lucide-react";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
@@ -103,6 +103,7 @@ export function DashboardShell({
   profileHref,
   notifications,
   leaveHref,
+  homeHref,
   contentBackgroundClassName,
   children,
 }: {
@@ -113,6 +114,10 @@ export function DashboardShell({
   profileHref?: string;
   notifications?: NotificationItem[];
   leaveHref?: string;
+  // Renders a "Home" icon linking here instead of the usual "My Leave" shortcut — for pages
+  // (like /staff/leave itself) where a link back to the leave page would just be a link to the
+  // current page. Takes priority over leaveHref when both are somehow passed.
+  homeHref?: string;
   contentBackgroundClassName?: string;
   children: React.ReactNode;
 }) {
@@ -200,20 +205,36 @@ export function DashboardShell({
               </div>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              {leaveHref && (
+              {homeHref ? (
                 <Tooltip>
                   <TooltipTrigger
                     render={
                       <Link
-                        href={leaveHref}
+                        href={homeHref}
                         className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       />
                     }
                   >
-                    <CalendarClock className="size-4" />
+                    <Home className="size-4" />
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">My Leave</TooltipContent>
+                  <TooltipContent side="bottom">Dashboard</TooltipContent>
                 </Tooltip>
+              ) : (
+                leaveHref && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Link
+                          href={leaveHref}
+                          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        />
+                      }
+                    >
+                      <CalendarClock className="size-4" />
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">My Leave</TooltipContent>
+                  </Tooltip>
+                )
               )}
               {notifications && <NotificationBell items={notifications} />}
               {profileHref ? (
