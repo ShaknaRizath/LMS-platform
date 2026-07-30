@@ -8,7 +8,9 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 // dashboards (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than an
 // Examination-specific swatch — same per-icon coloring convention as every other layout. The
 // dashboard page itself already used this palette; only the sidebar/background were left plain.
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const EXAMINATION_NAV_ITEMS: NavItem[] = [
   { href: "/examinations", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
   { href: "/examinations/exams", label: "Exams", icon: <ClipboardList className="size-4 text-[#4356C4]" /> },
   { href: "/examinations/marks", label: "Marks Locking", icon: <Lock className="size-4 text-[#8FA6E3]" /> },
@@ -40,7 +42,7 @@ export default async function ExaminationUnitLayout({
   return (
     <DashboardShell
       roleLabel="Examination Unit"
-      navItems={navItems}
+      navItems={EXAMINATION_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Examination Unit"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

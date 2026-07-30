@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db/prisma";
 import { getStaffLeaveNotifications } from "@/lib/notifications/staff-leave-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const LIBRARY_NAV_ITEMS: NavItem[] = [
   { href: "/library", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
 ];
 
@@ -32,7 +34,7 @@ export default async function LibraryOfficerLayout({
   return (
     <DashboardShell
       roleLabel="Library Officer"
-      navItems={navItems}
+      navItems={LIBRARY_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Library Officer"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

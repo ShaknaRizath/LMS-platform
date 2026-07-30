@@ -7,7 +7,9 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 // Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator and
 // Finance dashboards (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than
 // an HR-specific swatch — same per-icon coloring convention as every other layout.
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const HR_NAV_ITEMS: NavItem[] = [
   { href: "/hr", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
   { href: "/hr/staff", label: "Staff Directory", icon: <Users className="size-4 text-[#8FA6E3]" /> },
   { href: "/hr/leave", label: "Leave Requests", icon: <CalendarClock className="size-4 text-[#4356C4]" /> },
@@ -37,7 +39,7 @@ export default async function HrOfficerLayout({
   return (
     <DashboardShell
       roleLabel="HR Officer"
-      navItems={navItems}
+      navItems={HR_NAV_ITEMS}
       userName={user.name ?? user.email ?? "HR Officer"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

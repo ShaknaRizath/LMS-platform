@@ -7,7 +7,9 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 // Reuses the exact Cosmic Blues / Soft Whisper palette from the Program Coordinator and
 // Finance dashboards (COORDINATOR_PALETTE, src/components/coordinator/palette.ts) rather than
 // a Marketing-specific swatch — same per-icon coloring convention as every other layout.
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const MARKETING_NAV_ITEMS: NavItem[] = [
   { href: "/marketing", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#2B1FFF]" /> },
   { href: "/marketing/applications", label: "Applications", icon: <Inbox className="size-4 text-[#4356C4]" /> },
 ];
@@ -36,7 +38,7 @@ export default async function MarketingOfficerLayout({
   return (
     <DashboardShell
       roleLabel="Marketing Officer"
-      navItems={navItems}
+      navItems={MARKETING_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Marketing Officer"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

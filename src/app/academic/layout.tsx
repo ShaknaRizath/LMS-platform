@@ -7,7 +7,9 @@ import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shel
 // 5 nav icons, each a distinct color — blends the vivid pink/magenta/coral/orange palette
 // (ACADEMIC_PALETTE, used on the dashboard cards) with the darker "Vintage Rose" swatch, since
 // a single 4-color palette can't give 5 icons 5 non-repeating colors.
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const ACADEMIC_NAV_ITEMS: NavItem[] = [
   { href: "/academic", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#FF6FD3]" /> },
   { href: "/academic/discipline", label: "Discipline Cases", icon: <ShieldAlert className="size-4 text-[#5F2A3C]" /> },
   { href: "/academic/workload", label: "Lecturer Workload", icon: <GraduationCap className="size-4 text-[#EF7C4B]" /> },
@@ -39,7 +41,7 @@ export default async function AcademicDirectorLayout({
   return (
     <DashboardShell
       roleLabel="Academic Director"
-      navItems={navItems}
+      navItems={ACADEMIC_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Academic Director"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

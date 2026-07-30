@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db/prisma";
 import { getLecturerNotifications } from "@/lib/notifications/lecturer-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const LECTURER_NAV_ITEMS: NavItem[] = [
   { href: "/lecturer", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#8B5FBF]" /> },
   { href: "/lecturer/modules", label: "My Modules", icon: <BookOpen className="size-4 text-[#C97FB4]" /> },
   { href: "/lecturer/schedule", label: "Teaching Schedule", icon: <CalendarClock className="size-4 text-[#F0B36B]" /> },
@@ -37,7 +39,7 @@ export default async function LecturerLayout({
   return (
     <DashboardShell
       roleLabel="Lecturer"
-      navItems={navItems}
+      navItems={LECTURER_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Lecturer"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"

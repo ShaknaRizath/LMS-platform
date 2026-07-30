@@ -18,7 +18,9 @@ import { prisma } from "@/lib/db/prisma";
 import { getAdminNotifications } from "@/lib/notifications/admin-feed";
 import { DashboardShell, type NavItem } from "@/components/layout/dashboard-shell";
 
-const navItems: NavItem[] = [
+// Exported so /staff/leave's layout can reuse it verbatim when rendering this role's shell
+// around the shared leave-request page.
+export const ADMIN_NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="size-4 text-[#6D7DBB]" /> },
   { href: "/admin/analytics", label: "Analytics", icon: <BarChart3 className="size-4 text-[#C79966]" /> },
   { href: "/admin/programs", label: "Programs", icon: <GraduationCap className="size-4 text-[#8A6339]" /> },
@@ -58,7 +60,7 @@ export default async function AdminLayout({
   return (
     <DashboardShell
       roleLabel={user.role === "SUPER_ADMIN" ? "Super Administrator" : "Campus Administrator"}
-      navItems={navItems}
+      navItems={ADMIN_NAV_ITEMS}
       userName={user.name ?? user.email ?? "Admin"}
       userEmail={user.email ?? ""}
       leaveHref="/staff/leave"
