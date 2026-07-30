@@ -9,8 +9,12 @@ export async function POST(request: Request) {
     return new Response(null, { status: 401 });
   }
 
-  const body = (await request.json()) as { folder?: string; resourceType?: UploadResourceType };
-  const { folder, resourceType } = body;
+  const body = (await request.json()) as {
+    folder?: string;
+    resourceType?: UploadResourceType;
+    filename?: string;
+  };
+  const { folder, resourceType, filename } = body;
 
   const allowedPrefixes = resolveAllowedFolderPrefixes(session.user.role, session.user.id);
 
@@ -19,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const params = await storage.getSignedUploadParams({ folder, resourceType });
+    const params = await storage.getSignedUploadParams({ folder, resourceType, filename });
     return Response.json(params);
   } catch (error) {
     return Response.json(
