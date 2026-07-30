@@ -17,25 +17,42 @@ export class CloudinaryAdapter implements StorageAdapter {
   async getSignedUploadParams({
     folder,
     resourceType = "auto",
+    filename,
   }: {
     folder: string;
     resourceType?: UploadResourceType;
+    filename?: string;
   }): Promise<SignedUploadParams> {
     const timestamp = Math.round(Date.now() / 1000);
-    const paramsToSign = { folder, timestamp };
+    // Strip the extension — Cloudinary appends the detected format itself for image-type
+    // resources (which is what PDFs auto-route to), so keeping ".pdf" in public_id here would
+    // produce "....pdf.pdf" in the delivered URL.
+    const publicId = filename
+      ? filename
+          .replace(/\.[^./]+$/, "")
+          .replace(/[^a-zA-Z0-9.\-_ ]/g, "_")
+          .trim()
+      : undefined;
+
+    const paramsToSign: Record<string, string | number> = { folder, timestamp };
+    if (publicId) paramsToSign.public_id = publicId;
+
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
       cloudinary.config().api_secret as string
     );
 
+    const fields: Record<string, string> = {
+      api_key: cloudinary.config().api_key as string,
+      timestamp: String(timestamp),
+      signature,
+      folder,
+    };
+    if (publicId) fields.public_id = publicId;
+
     return {
       url: `https://api.cloudinary.com/v1_1/${this.cloudName}/${resourceType}/upload`,
-      fields: {
-        api_key: cloudinary.config().api_key as string,
-        timestamp: String(timestamp),
-        signature,
-        folder,
-      },
+      fields,
     };
   }
 

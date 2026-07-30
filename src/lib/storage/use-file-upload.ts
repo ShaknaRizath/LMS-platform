@@ -21,7 +21,7 @@ export function useFileUpload() {
       const signRes = await fetch("/api/uploads/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder, resourceType: "auto" }),
+        body: JSON.stringify({ folder, resourceType: "auto", filename: file.name }),
       });
       if (!signRes.ok) {
         const body = await signRes.json().catch(() => ({}));
