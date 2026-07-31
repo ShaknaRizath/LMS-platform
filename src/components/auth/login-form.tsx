@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/field";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
-export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
+export function LoginForm({
+  callbackUrl,
+  googleEnabled,
+}: {
+  callbackUrl?: string;
+  googleEnabled: boolean;
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     login,
@@ -75,7 +81,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           {pending ? "Signing in..." : "Login"}
         </Button>
         <FieldSeparator>Or</FieldSeparator>
-        <OAuthButtons />
+        <OAuthButtons googleEnabled={googleEnabled} />
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">

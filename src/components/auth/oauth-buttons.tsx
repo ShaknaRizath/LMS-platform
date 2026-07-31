@@ -30,9 +30,7 @@ function GoogleIcon() {
   );
 }
 
-export function OAuthButtons() {
-  const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
-
+export function OAuthButtons({ googleEnabled }: { googleEnabled: boolean }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       {googleEnabled ? (

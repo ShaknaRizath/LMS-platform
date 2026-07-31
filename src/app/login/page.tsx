@@ -7,6 +7,7 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const { callbackUrl } = await searchParams;
+  const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
   return (
     <AuthSplitLayout>
@@ -16,7 +17,7 @@ export default async function LoginPage({
           Enter your credentials to access your account
         </p>
       </div>
-      <LoginForm callbackUrl={callbackUrl} />
+      <LoginForm callbackUrl={callbackUrl} googleEnabled={googleEnabled} />
     </AuthSplitLayout>
   );
 }

@@ -11,13 +11,14 @@ export default async function SignupPage() {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
   return (
     <AuthSplitLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-foreground">Get Started Now</h1>
       </div>
-      <SignupForm programs={programs} />
+      <SignupForm programs={programs} googleEnabled={googleEnabled} />
     </AuthSplitLayout>
   );
 }
