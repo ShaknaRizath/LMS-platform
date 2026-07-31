@@ -37,6 +37,7 @@ export function OAuthButtons({ googleEnabled }: { googleEnabled: boolean }) {
         <Button
           type="submit"
           formAction={signInWithGoogle}
+          formNoValidate
           variant="outline"
           className="w-full rounded-full"
         >
