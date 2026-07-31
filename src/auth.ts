@@ -56,23 +56,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider !== "google") return true;
       if (!user.email) return false;
 
+      // Google sign-in only works for users already provisioned through admissions/HR —
+      // it must never create a new account on its own.
       const existing = await prisma.user.findUnique({ where: { email: user.email } });
-      if (!existing) {
-        const [firstName, ...rest] = (user.name ?? "Student").split(" ");
-        await prisma.user.create({
-          data: {
-            email: user.email,
-            passwordHash: null,
-            firstName: firstName || "Student",
-            lastName: rest.join(" ") || "-",
-            role: "STUDENT",
-            isActive: true,
-          },
-        });
-        return true;
-      }
-
-      return existing.isActive;
+      return Boolean(existing?.isActive);
     },
     jwt: async ({ token, user, account }) => {
       if (user) {

@@ -23,13 +23,7 @@ import {
 } from "@/components/ui/field";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
-export function SignupForm({
-  programs,
-  googleEnabled,
-}: {
-  programs: { id: string; name: string }[];
-  googleEnabled: boolean;
-}) {
+export function SignupForm({ programs }: { programs: { id: string; name: string }[] }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<SignupState, FormData>(
     signup,
@@ -114,7 +108,7 @@ export function SignupForm({
           {pending ? "Creating account..." : "Signup"}
         </Button>
         <FieldSeparator>Or</FieldSeparator>
-        <OAuthButtons googleEnabled={googleEnabled} />
+        <OAuthButtons />
         <p className="text-center text-sm text-muted-foreground">
           Have an account?{" "}
           <Link href="/login" className="font-medium text-foreground underline underline-offset-4">

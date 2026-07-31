@@ -5,7 +5,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { signInWithGoogle } from "@/lib/actions/auth/google-signin.action";
 
 function GoogleIcon() {
   return (
@@ -30,33 +29,20 @@ function GoogleIcon() {
   );
 }
 
-export function OAuthButtons({ googleEnabled }: { googleEnabled: boolean }) {
+export function OAuthButtons() {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {googleEnabled ? (
-        <Button
-          type="submit"
-          formAction={signInWithGoogle}
-          formNoValidate
-          variant="outline"
-          className="w-full rounded-full"
-        >
-          <GoogleIcon />
-          Google
-        </Button>
-      ) : (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button variant="outline" className="w-full rounded-full" disabled>
-                <GoogleIcon />
-                Google
-              </Button>
-            }
-          />
-          <TooltipContent>Coming soon</TooltipContent>
-        </Tooltip>
-      )}
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button variant="outline" className="w-full rounded-full" disabled>
+              <GoogleIcon />
+              Google
+            </Button>
+          }
+        />
+        <TooltipContent>Coming soon</TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={

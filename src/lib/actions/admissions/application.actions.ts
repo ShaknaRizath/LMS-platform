@@ -10,6 +10,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { generateToken } from "@/lib/auth/tokens";
 import { storage } from "@/lib/storage";
 import { generateOfferLetterPdf } from "@/lib/admissions/generate";
+import { generateRegistrationNumber, institutionalEmailFor } from "@/lib/students/registration-number";
 import { applicationSchema, rejectApplicationSchema } from "@/lib/validation/application.schema";
 import { sendNotificationEmail } from "@/lib/notifications";
 import {
@@ -84,10 +85,14 @@ export async function approveApplication(
     contentType: "application/pdf",
   });
 
-  const { userId, token } = await prisma.$transaction(async (tx) => {
+  const { userId, token, institutionalEmail } = await prisma.$transaction(async (tx) => {
+    const registrationNumber = await generateRegistrationNumber(tx);
+    const institutionalEmail = institutionalEmailFor(registrationNumber);
+
     const user = await tx.user.create({
       data: {
-        email: application.email,
+        email: institutionalEmail,
+        registrationNumber,
         passwordHash: await hashPassword(generateToken()),
         firstName: application.firstName,
         lastName: application.lastName,
@@ -118,13 +123,14 @@ export async function approveApplication(
       },
     });
 
-    return { userId: user.id, token: resetToken };
+    return { userId: user.id, token: resetToken, institutionalEmail };
   });
 
   const setPasswordUrl = `${baseUrl()}/reset-password?token=${token}`;
   const template = offerLetterTemplate({
     firstName: application.firstName,
     programName: application.program.name,
+    institutionalEmail,
     setPasswordUrl,
     offerLetterUrl: uploaded.url,
   });

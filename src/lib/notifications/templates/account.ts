@@ -47,6 +47,7 @@ export function applicationReceivedTemplate(params: { firstName: string; referen
 export function offerLetterTemplate(params: {
   firstName: string;
   programName: string;
+  institutionalEmail: string;
   setPasswordUrl: string;
   offerLetterUrl: string;
 }) {
@@ -56,7 +57,9 @@ export function offerLetterTemplate(params: {
       <p>Hi ${params.firstName},</p>
       <p>Congratulations! You've been admitted to ${params.programName} at CIMS Campus.</p>
       <p>Your offer letter is ready: <a href="${params.offerLetterUrl}">${params.offerLetterUrl}</a></p>
-      <p>An account has been created for you. Click the link below to set your password and get started:</p>
+      <p>You've been assigned a CIMS Campus student email — this is what you'll use to log in from now on, not the address you applied with:</p>
+      <p><strong>${params.institutionalEmail}</strong></p>
+      <p>Click the link below to set your password for this account and get started:</p>
       <p><a href="${params.setPasswordUrl}">${params.setPasswordUrl}</a></p>
       <p>This link expires in 7 days.</p>
     `,

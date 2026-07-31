@@ -7,16 +7,16 @@ import { requireRole } from "@/lib/auth/rbac";
 import { storage } from "@/lib/storage";
 import { computeStudentAcademicRecord } from "@/lib/grades/gpa";
 import { generateTranscriptPdf } from "@/lib/transcripts/generate";
+import { generateRegistrationNumber } from "@/lib/students/registration-number";
 
-// Registration numbers are assigned lazily on first transcript issuance, not at admission —
-// existing (pre-batch) students only need one once someone actually requests their transcript.
+// Registration numbers are now assigned at admission approval (see approveApplication) —
+// this fallback only matters for students admitted before that existed.
 async function ensureRegistrationNumber(studentId: string): Promise<string> {
   return prisma.$transaction(async (tx) => {
     const student = await tx.user.findUniqueOrThrow({ where: { id: studentId } });
     if (student.registrationNumber) return student.registrationNumber;
 
-    const count = await tx.user.count({ where: { registrationNumber: { not: null } } });
-    const registrationNumber = `CIMS/${new Date().getFullYear()}/${String(count + 1).padStart(5, "0")}`;
+    const registrationNumber = await generateRegistrationNumber(tx);
     await tx.user.update({ where: { id: studentId }, data: { registrationNumber } });
     return registrationNumber;
   });
