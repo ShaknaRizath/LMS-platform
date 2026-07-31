@@ -36,12 +36,15 @@ export function OAuthButtons() {
   return (
     <div className="grid grid-cols-2 gap-3">
       {googleEnabled ? (
-        <form action={signInWithGoogle}>
-          <Button type="submit" variant="outline" className="w-full rounded-full">
-            <GoogleIcon />
-            Google
-          </Button>
-        </form>
+        <Button
+          type="submit"
+          formAction={signInWithGoogle}
+          variant="outline"
+          className="w-full rounded-full"
+        >
+          <GoogleIcon />
+          Google
+        </Button>
       ) : (
         <Tooltip>
           <TooltipTrigger
