@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-const CHANNELS = ["EMAIL", "SMS", "WHATSAPP"] as const;
+const CHANNELS = ["EMAIL", "SMS", "WHATSAPP", "PUSH"] as const;
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
   SENT: "default",
@@ -40,7 +40,7 @@ export default async function AdminNotificationsPage({
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Notifications</h1>
         <p className="text-muted-foreground">
-          Outbound notifications across every channel — email, SMS, and WhatsApp. Most recent 100.
+          Outbound notifications across every channel — email, SMS, WhatsApp, and push. Most recent 100.
         </p>
       </div>
 

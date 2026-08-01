@@ -150,6 +150,7 @@ enum NotificationChannel {
   EMAIL
   SMS
   WHATSAPP
+  PUSH
 }
 
 enum QuizKind {
@@ -274,6 +275,7 @@ model User {
   disciplineCasesReported   DisciplineCase[]           @relation("DisciplineCaseReportedBy")
   disciplineCasesResolved   DisciplineCase[]           @relation("DisciplineCaseResolvedBy")
   staffNotes                StaffNote[]
+  pushSubscriptions         PushSubscription[]
 
   @@index([role])
 }
@@ -1142,4 +1144,19 @@ model NotificationRead {
   readAt DateTime @default(now())
 
   @@unique([userId, key])
+}
+
+// One row per subscribed browser/device (a user may have several). Populated by the
+// PushNotificationToggle component via subscribeToPush; removed on unsubscribe or when
+// the webpush adapter gets a 404/410 back from the push service (expired endpoint).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

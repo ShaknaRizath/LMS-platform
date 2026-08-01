@@ -101,12 +101,12 @@ The original proposal suggested a stack to be finalized based on "the institutio
 ## 5. Known Gaps to Disclose Before Go-Live
 
 - **Payment gateway is a labeled sandbox mock** — no real transaction processor (PayHere, Stripe, etc.) is wired in. Going live with real tuition payments requires integrating one.
-- **SMS and WhatsApp notifications are stubs** — they log to the console only; no Twilio/WhatsApp Business API account is connected.
-- **No multi-tenant "Campus" entity** — if the institution ever needs to run more than one physical campus with separate data, this needs to be designed and built; today `CAMPUS_ADMIN` is functionally identical to `SUPER_ADMIN`.
-- **No push notifications** — only email + in-app notification bell exist.
-- **Payroll is not implemented** — HR's "Payroll sync" stat is a placeholder.
-- **Library Officer and Marketing Officer dashboards are largely placeholder** — Library's dashboard has no real data behind any stat; Marketing has 2 of 4 stats unbuilt.
-- **A real, reproducing build-blocking bug exists today**: the Academic Director dashboard (`/academic`) currently fails `npm run build` under load, due to too many simultaneous database queries exhausting the connection pool. **This must be fixed before a production build will succeed** — it is a concrete, scoped bug, not a design gap.
+- **Email-only notifications, by design** — SMS and WhatsApp notifications are console-only stubs; no real Twilio/WhatsApp Business API account is connected. Decision: not building these channels — every notification event already sends email unconditionally, so this is not a gap in student/staff reach, just an unbuilt extra channel.
+- **No multi-tenant "Campus" entity** — `CAMPUS_ADMIN` is functionally identical to `SUPER_ADMIN`. Decision: not building this — CIMS operates a single campus, so multi-tenancy is permanently out of scope, not deferred.
+- **Payroll is not implemented** — HR's "Payroll sync" stat is a placeholder. Deferred — admin has explicitly said this isn't needed for now; revisit only if requested.
+- **Library Officer and Marketing Officer dashboards are largely placeholder** — Library's dashboard has no real data behind any stat; Marketing has 2 of 4 stats unbuilt. Deferred — admin has explicitly said this isn't needed for now; revisit only if requested.
+
+Resolved since the last pass of this doc: real Web Push notifications are now live (desktop + Android Chrome/Firefox/Edge; iOS Safari needs Home Screen install, which isn't built, so iOS stays email-only) — opt in/out via the bell-adjacent icon in the header. The previously-listed "build-blocking connection-pool bug on `/academic`" no longer reproduces — `npm run build` completes cleanly as of this pass.
 
 ---
 
@@ -149,6 +149,7 @@ Key architectural facts (verified from the code, not assumed):
 - **Passwords are hashed with bcrypt** (`bcryptjs`), never stored in plaintext.
 - **File uploads** (avatars, payment proof, content attachments) go to Cloudinary when configured; if Cloudinary env vars are blank, uploads no-op in development.
 - **Email** is sent via Resend when `RESEND_API_KEY` is set; otherwise a console-log adapter stands in so development doesn't require real credentials.
+- **Push** is sent via real Web Push (VAPID, no external account) when `VAPID_PRIVATE_KEY` is set; otherwise a console-log adapter stands in, same pattern as email/SMS/WhatsApp.
 
 ---
 
@@ -166,11 +167,13 @@ Below is every environment variable the running application actually reads, wher
 | `STORAGE_PROVIDER` | Currently unused by the code (dead variable) | — | Documented but not read anywhere — safe to remove or should be wired up; flagging so it isn't mistaken for a working toggle |
 | `RESEND_API_KEY` | **Yes**, if real emails (offer letters, password resets, notifications) should send | Free/paid account at resend.com → API Keys | Real transactional email delivery |
 | `EMAIL_FROM` | Yes, alongside Resend | Must be an email address on a domain you've verified with Resend | The "From" address on all system emails |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | **Yes**, if real push notifications should send | Generate once with `npx web-push generate-vapid-keys`, no account/business signup needed | Signs outbound Web Push messages |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | **Yes**, alongside the above | Same value as `VAPID_PUBLIC_KEY` | Exposed client-side so the browser can subscribe |
 
-**Not yet needed (because the features aren't built), but to budget for later:**
+**Not yet needed (because the feature isn't built), but to budget for later:**
 - A real payment gateway account (e.g. PayHere, Stripe) once the mock checkout is replaced.
-- A Twilio (or similar) account for real SMS.
-- A WhatsApp Business API provider for real WhatsApp messages.
+
+SMS and WhatsApp are not on this list — by explicit decision (§5), those channels aren't being built; every notification already reaches users by email (and now push).
 
 ---
 

@@ -9,6 +9,7 @@ import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
+import { PushNotificationToggle } from "@/components/layout/push-notification-toggle";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { LECTURER_PALETTE } from "@/components/lecturer/palette";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -236,6 +237,7 @@ export function DashboardShell({
                   </Tooltip>
                 )
               )}
+              <PushNotificationToggle />
               {notifications && <NotificationBell items={notifications} />}
               {profileHref ? (
                 <ProfileMenu userName={userName} userEmail={userEmail} profileHref={profileHref} />

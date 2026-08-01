@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Mail, MessageSquare, MessageCircle } from "lucide-react";
+import { ChevronRight, Mail, MessageSquare, MessageCircle, BellRing } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { ADMIN_PALETTE } from "@/components/admin/palette";
 import type { NotificationChannel } from "@/generated/prisma/enums";
@@ -17,6 +17,7 @@ const CHANNEL_ICON: Record<NotificationChannel, typeof Mail> = {
   EMAIL: Mail,
   SMS: MessageSquare,
   WHATSAPP: MessageCircle,
+  PUSH: BellRing,
 };
 
 export function RecentNotificationsCard({ items }: { items: RecentNotificationItem[] }) {
