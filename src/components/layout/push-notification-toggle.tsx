@@ -87,7 +87,8 @@ export function PushNotificationToggle() {
       });
       await subscribeToPush(subscription.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } });
       setState("enabled");
-    } catch {
+    } catch (error) {
+      console.error("Failed to enable push notifications", error);
       setState("disabled");
     } finally {
       setPending(false);
@@ -100,11 +101,17 @@ export function PushNotificationToggle() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
-        await unsubscribeFromPush(subscription.endpoint);
+        // Unsubscribe the browser first — it's the source of truth `detect()` re-reads on
+        // the next page load. Telling the server is best-effort after that: if it fails,
+        // the worst case is an orphaned DB row, which sendNotificationPush's 404/410
+        // handling already cleans up the next time it tries (and fails) to use it.
         await subscription.unsubscribe();
+        await unsubscribeFromPush(subscription.endpoint);
       }
-    } finally {
       setState("disabled");
+    } catch (error) {
+      console.error("Failed to disable push notifications", error);
+    } finally {
       setPending(false);
     }
   }
