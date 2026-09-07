@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-background px-6 text-center">
+      <Image src="/cims-logo.png" alt="CIMS Campus" width={72} height={72} priority />
       <span className="rounded-full bg-secondary px-4 py-1 text-sm font-medium text-secondary-foreground">
         CIMS Campus
       </span>
