@@ -1,4 +1,4 @@
-import { AuthLogoSceneLazy } from "@/components/auth/auth-logo-scene-lazy";
+import Image from "next/image";
 
 export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,7 +7,14 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-sm">{children}</div>
       </div>
       <div className="relative hidden overflow-hidden bg-white lg:block">
-        <AuthLogoSceneLazy />
+        <Image
+          src="/auth-hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
       </div>
     </div>
   );
