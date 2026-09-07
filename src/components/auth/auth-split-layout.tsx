@@ -14,6 +14,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
           priority
           sizes="50vw"
           className="object-cover"
+          style={{ objectPosition: "22% 20%" }}
         />
       </div>
     </div>
